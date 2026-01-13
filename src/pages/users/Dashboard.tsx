@@ -22,8 +22,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { useNotification } from "@/components/NotificationProvider";
+// import { useNotification } from "@/components/NotificationProvider";
 const API_BASE_URL = import.meta.env.VITE_BASE_URL;
+import { useAttendance } from "../../components/AttendanceProvider";
 
 /**
  * Utility to format seconds into HH:MM:SS
@@ -58,31 +59,33 @@ interface ActivityItem {
   title: string;
   description: string;
   created_at: string;
-  type: 'task' | 'meeting';
+  type: "task" | "meeting";
 }
 
 const UserHome: React.FC = () => {
-  // --- Attendance State ---
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
+  // --- Attendance Context ---
+  const { isCheckedIn, hasCheckedOut, startTime, checkIn, checkOut } =
+    useAttendance();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isClockingIn, setIsClockingIn] = useState(false);
+  const [isClockingIn, setIsClockingIn] = useState(false); // Local loading state for button feedback
 
   // --- Dashboard Data State ---
   const [statsData, setStatsData] = useState<DashboardStats | null>(null);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { showSuccess, showError } = useNotification();
-
+  // const { showSuccess, showError } = useNotification();
 
   // --- Fetch Dashboard Data ---
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/employee/dashboard/stats`, {
-          credentials: 'include'
-        });
+        const response = await fetch(
+          `${API_BASE_URL}/employee/dashboard/stats`,
+          {
+            credentials: "include",
+          }
+        );
         if (response.ok) {
           const data = await response.json();
           setStatsData(data.stats);
@@ -98,39 +101,6 @@ const UserHome: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-
-  // --- SYNC LOGIC (The Fix) ---
-  useEffect(() => {
-    const checkStatus = () => {
-      // Use the SAME keys as the Sidebar and Attendance page
-      const storedStatus = localStorage.getItem("attendance_status");
-      const storedStart = localStorage.getItem("attendance_start_time");
-
-      if (storedStatus === "clocked_in" && storedStart) {
-        setIsCheckedIn(true);
-        setStartTime(parseInt(storedStart, 10));
-      } else {
-        setIsCheckedIn(false);
-        setStartTime(null);
-        setElapsedSeconds(0);
-      }
-    };
-
-    // 1. Check immediately on load
-    checkStatus();
-
-    // 2. Listen for changes (e.g. if Sidebar button is clicked)
-    window.addEventListener("storage", checkStatus);
-
-    // 3. Poll every second to catch changes made in the same tab (Sidebar)
-    const syncInterval = setInterval(checkStatus, 1000);
-
-    return () => {
-      window.removeEventListener("storage", checkStatus);
-      clearInterval(syncInterval);
-    };
-  }, []);
-
   // --- Timer Logic ---
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -143,6 +113,8 @@ const UserHome: React.FC = () => {
         const now = Date.now();
         setElapsedSeconds(Math.floor((now - startTime) / 1000));
       }, 1000);
+    } else {
+      setElapsedSeconds(0);
     }
 
     return () => clearInterval(interval);
@@ -150,34 +122,10 @@ const UserHome: React.FC = () => {
 
   // --- Handlers ---
   const handleClockIn = async () => {
-    if (isClockingIn) return;
+    if (isClockingIn || hasCheckedOut) return;
     setIsClockingIn(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/employee/dashboard/clock-in`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        await response.json();
-        const now = Date.now();
-
-        setStartTime(now);
-        setIsCheckedIn(true);
-
-        // SAVE using the correct keys
-        localStorage.setItem("attendance_start_time", now.toString());
-        localStorage.setItem("attendance_status", "clocked_in");
-
-        showSuccess("Clocked In Successfully!");
-      } else {
-        const errorData = await response.json();
-        console.error("Clock In failed:", errorData.message);
-        showError(errorData.message || "Clock In Failed");
-      }
+      await checkIn();
     } finally {
       setIsClockingIn(false);
     }
@@ -187,30 +135,7 @@ const UserHome: React.FC = () => {
     if (isClockingIn) return;
     setIsClockingIn(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/employee/dashboard/clock-out`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        await response.json();
-        setIsCheckedIn(false);
-        setStartTime(null);
-        setElapsedSeconds(0); // Reset timer visual
-
-        // REMOVE using the correct keys
-        localStorage.removeItem("attendance_start_time");
-        localStorage.removeItem("attendance_status");
-
-        showSuccess("Clocked Out Successfully!");
-      } else {
-        const errorData = await response.json();
-        console.error("Clock Out failed:", errorData.message);
-        showError(errorData.message || "Clock Out Failed");
-      }
+      await checkOut();
     } finally {
       setIsClockingIn(false);
     }
@@ -263,7 +188,7 @@ const UserHome: React.FC = () => {
     if (hours < 1) return "Just now";
     if (hours < 24) return `${hours}h ago`;
     return date.toLocaleDateString();
-  }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 px-6 lg:p-10 animate-in fade-in duration-500">
@@ -295,8 +220,9 @@ const UserHome: React.FC = () => {
               {isCheckedIn ? "Online" : "Offline"}
             </span>
             <span
-              className={`w-2.5 h-2.5 rounded-full ${isCheckedIn ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
-                }`}
+              className={`w-2.5 h-2.5 rounded-full ${
+                isCheckedIn ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+              }`}
             ></span>
           </div>
         </div>
@@ -385,7 +311,11 @@ const UserHome: React.FC = () => {
                             {item.type}
                           </Badge>
                           <span className="flex items-center gap-1">
-                            <Clock size={12} /> {new Date(item.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            <Clock size={12} />{" "}
+                            {new Date(item.start_time).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </span>
                         </div>
                       </div>
@@ -395,7 +325,10 @@ const UserHome: React.FC = () => {
                           variant="outline"
                           disabled={isMeetingEnded}
                           className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 hover:text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          onClick={() => !isMeetingEnded && window.open(item.join_url, '_blank')}
+                          onClick={() =>
+                            !isMeetingEnded &&
+                            window.open(item.join_url, "_blank")
+                          }
                         >
                           {isMeetingEnded ? "Ended" : "Join"}
                         </Button>
@@ -424,7 +357,8 @@ const UserHome: React.FC = () => {
                     </TableHeader>
                     <TableBody>
                       {schedule.map((item, i) => {
-                        const isMeetingEnded = new Date(item.end_time) < new Date();
+                        const isMeetingEnded =
+                          new Date(item.end_time) < new Date();
                         return (
                           <TableRow
                             key={i}
@@ -441,7 +375,15 @@ const UserHome: React.FC = () => {
                             <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300 font-medium">
                               <div className="flex items-center gap-2">
                                 <Clock size={14} className="text-slate-400" />{" "}
-                                {new Date(item.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(item.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(item.start_time).toLocaleTimeString(
+                                  [],
+                                  { hour: "2-digit", minute: "2-digit" }
+                                )}{" "}
+                                -{" "}
+                                {new Date(item.end_time).toLocaleTimeString(
+                                  [],
+                                  { hour: "2-digit", minute: "2-digit" }
+                                )}
                               </div>
                             </TableCell>
                             <TableCell className="px-6 py-4 text-right">
@@ -451,7 +393,10 @@ const UserHome: React.FC = () => {
                                   variant="outline"
                                   disabled={isMeetingEnded}
                                   className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 hover:text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                  onClick={() => !isMeetingEnded && window.open(item.join_url, '_blank')}
+                                  onClick={() =>
+                                    !isMeetingEnded &&
+                                    window.open(item.join_url, "_blank")
+                                  }
                                 >
                                   {isMeetingEnded ? "Ended" : "Join"}
                                 </Button>
@@ -468,7 +413,7 @@ const UserHome: React.FC = () => {
           </div>
 
           {/* Right Column: Attendance Widget */}
-          <div className="space-y-8">
+          <div className="space-y-8 order-first lg:order-none">
             {/* Timer Card */}
             <Card className="rounded-3xl shadow-xl relative overflow-hidden bg-white dark:bg-transparent dark:bg-linear-to-br dark:from-slate-900 dark:to-slate-800 border-none">
               {/* Decorative background elements (Dark mode only) */}
@@ -478,10 +423,11 @@ const UserHome: React.FC = () => {
               <div className="relative z-10 flex flex-col items-center text-center p-8">
                 <Badge
                   variant="outline"
-                  className={`mb-2 px-3 py-1 text-xs font-medium backdrop-blur-sm border-slate-200 dark:border-white/10 ${isCheckedIn
-                    ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                    : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-white"
-                    }`}
+                  className={`mb-2 px-3 py-1 text-xs font-medium backdrop-blur-sm border-slate-200 dark:border-white/10 ${
+                    isCheckedIn
+                      ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                      : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-white"
+                  }`}
                 >
                   {isCheckedIn ? "Currently Working" : "Ready to Start?"}
                 </Badge>
@@ -496,24 +442,35 @@ const UserHome: React.FC = () => {
                 </p>
 
                 <Button
-                  disabled={isClockingIn}
+                  disabled={isClockingIn || hasCheckedOut}
                   onClick={isCheckedIn ? handleClockOut : handleClockIn}
                   className={`
                       w-full py-6 rounded-xl font-bold text-lg shadow-lg cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed
-                      ${isCheckedIn
-                      ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25"
-                    }
+                      ${
+                        isCheckedIn
+                          ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25"
+                          : hasCheckedOut
+                          ? "bg-slate-400 text-white cursor-not-allowed"
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25"
+                      }
                     `}
                 >
                   <span className="flex items-center justify-center gap-2">
                     {isCheckedIn ? (
                       <Square size={20} fill="currentColor" />
+                    ) : hasCheckedOut ? (
+                      <CheckCircle2 size={20} />
                     ) : (
                       <Play size={20} fill="currentColor" />
                     )}
-                    {isCheckedIn ? "Clock Out" : "Clock In"}
-                    {isClockingIn && <span className="ml-2 w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></span>}
+                    {isCheckedIn
+                      ? "Clock Out"
+                      : hasCheckedOut
+                      ? "Done for Today"
+                      : "Clock In"}
+                    {isClockingIn && (
+                      <span className="ml-2 w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></span>
+                    )}
                   </span>
                 </Button>
 
@@ -550,14 +507,22 @@ const UserHome: React.FC = () => {
                 {recentActivity.length > 0 ? (
                   <div className="space-y-6">
                     {recentActivity.map((act, i) => {
-                      const icon = act.type === 'task' ? <CheckCircle2 size={16} /> : <Calendar size={16} />;
-                      const color = act.type === 'task'
-                        ? "text-emerald-500 bg-emerald-100 dark:bg-emerald-500/20"
-                        : "text-purple-500 bg-purple-100 dark:bg-purple-500/20";
+                      const icon =
+                        act.type === "task" ? (
+                          <CheckCircle2 size={16} />
+                        ) : (
+                          <Calendar size={16} />
+                        );
+                      const color =
+                        act.type === "task"
+                          ? "text-emerald-500 bg-emerald-100 dark:bg-emerald-500/20"
+                          : "text-purple-500 bg-purple-100 dark:bg-purple-500/20";
 
                       return (
                         <div key={i} className="flex gap-4">
-                          <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${color}`}>
+                          <div
+                            className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${color}`}
+                          >
                             {icon}
                           </div>
                           <div>
@@ -576,9 +541,10 @@ const UserHome: React.FC = () => {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center text-slate-400 text-sm py-4">No recent activity.</div>
+                  <div className="text-center text-slate-400 text-sm py-4">
+                    No recent activity.
+                  </div>
                 )}
-
               </CardContent>
             </Card>
           </div>
