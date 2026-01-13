@@ -481,7 +481,7 @@ const Chats: React.FC = () => {
           // Determine isMe based on currentUser - Check both camelCase and snake_case
           const isMe = currentUser
             ? String(message.senderId || (message as any).sender_id) ===
-              String(currentUser.id)
+            String(currentUser.id)
             : false;
 
           // Deduplication for Optimistic Updates:
@@ -489,10 +489,10 @@ const Chats: React.FC = () => {
           const optimisticMatchIndex =
             prev.length > 0
               ? prev
-                  .slice(-3)
-                  .findIndex(
-                    (m) => m.time === "Now" && m.text === message.text && m.isMe
-                  )
+                .slice(-3)
+                .findIndex(
+                  (m) => m.time === "Now" && m.text === message.text && m.isMe
+                )
               : -1;
 
           if (optimisticMatchIndex !== -1) {
@@ -663,8 +663,7 @@ const Chats: React.FC = () => {
 
     try {
       const res = await fetch(
-        `${
-          import.meta.env.VITE_API_URL || "http://localhost:3000"
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"
         }/api/chats/create`,
         {
           method: "POST",
@@ -892,7 +891,7 @@ const Chats: React.FC = () => {
           senderId: "me",
           text: `[${isImage ? "Image" : "File"} Upload Placeholder: ${
             file.name
-          }]`,
+            }]`,
         });
       }
     }
@@ -1001,8 +1000,8 @@ const Chats: React.FC = () => {
         flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200
         ${
           activeChat?.id === contact.id
-            ? "bg-slate-100 dark:bg-slate-800 border-l-4 border-l-slate-900 dark:border-l-green-500"
-            : "hover:bg-slate-50 dark:hover:bg-slate-800/50 border-l-4 border-l-transparent"
+          ? "bg-slate-100 dark:bg-slate-800 border-l-4 border-l-slate-900 dark:border-l-green-500"
+          : "hover:bg-slate-50 dark:hover:bg-slate-800/50 border-l-4 border-l-transparent"
         }
       `}
     >
@@ -1014,9 +1013,9 @@ const Chats: React.FC = () => {
               contact.type === "space"
                 ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
                 : contact.type === "group"
-                ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
-                : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-            }`}
+                  ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
+                  : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+              }`}
           >
             {contact.type === "space" ? (
               <Hash size={16} />
@@ -1077,7 +1076,7 @@ const Chats: React.FC = () => {
           {/* Header (Sticky & App-like) */}
           <div className="sticky top-0 z-20 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/50 shadow-sm transition-all pb-4 pt-4">
             {/* Title Row: Standard Alignment */}
-            <div className="flex items-center justify-between px-4 pb-2 pr-16 md:pr-4 relative min-h-10">
+            <div className="flex items-center justify-between px-4 pb-2 pr-16 md:pr-4 relative min-h-10 max-sm:hidden">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                 Messages
               </h2>
@@ -1143,19 +1142,19 @@ const Chats: React.FC = () => {
                 )}
                 {(filteredContacts.some((c) => c.type === "group") ||
                   filteredContacts.some((c) => c.type === "space")) && (
-                  <div className="mt-4">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
-                      Spaces & Groups
-                    </h3>
-                    <div className="space-y-1">
-                      {filteredContacts
-                        .filter((c) => c.type !== "direct")
-                        .map((contact) => (
-                          <ChatListItem key={contact.id} contact={contact} />
-                        ))}
+                    <div className="mt-4">
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
+                        Spaces & Groups
+                      </h3>
+                      <div className="space-y-1">
+                        {filteredContacts
+                          .filter((c) => c.type !== "direct")
+                          .map((contact) => (
+                            <ChatListItem key={contact.id} contact={contact} />
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </>
             )}
           </div>
@@ -1225,17 +1224,17 @@ const Chats: React.FC = () => {
                         <span
                           className={`w-1.5 h-1.5 rounded-full inline-block ${
                             activeChat.otherUserId &&
-                            onlineUsers.has(String(activeChat.otherUserId))
+                              onlineUsers.has(String(activeChat.otherUserId))
                               ? "bg-green-500"
                               : "bg-slate-400"
-                          }`}
+                            }`}
                         />{" "}
                         {typingUser
                           ? "Typing..."
                           : activeChat.otherUserId &&
                             onlineUsers.has(String(activeChat.otherUserId))
-                          ? "Online"
-                          : "Offline"}
+                            ? "Online"
+                            : "Offline"}
                       </p>
                     ) : (
                       <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1317,12 +1316,12 @@ const Chats: React.FC = () => {
                         key={msg.id}
                         className={`flex ${
                           msg.isMe ? "justify-end" : "justify-start"
-                        }`}
+                          }`}
                       >
                         <div
                           className={`flex max-w-[85%] md:max-w-[70%] ${
                             msg.isMe ? "flex-row-reverse" : "flex-row"
-                          } items-end gap-2`}
+                            } items-end gap-2`}
                         >
                           {!msg.isMe && (
                             <Avatar className="h-8 w-8 mb-1 mr-1 hidden sm:block">
@@ -1337,8 +1336,8 @@ const Chats: React.FC = () => {
                                 {activeChat.type === "direct"
                                   ? activeChat.name.substring(0, 1)
                                   : msg.senderName
-                                  ? msg.senderName.substring(0, 1)
-                                  : "?"}
+                                    ? msg.senderName.substring(0, 1)
+                                    : "?"}
                               </AvatarFallback>
                             </Avatar>
                           )}
@@ -1347,7 +1346,7 @@ const Chats: React.FC = () => {
                           <div
                             className={`flex flex-col ${
                               msg.isMe ? "items-end" : "items-start"
-                            } max-w-full min-w-0`}
+                              } max-w-full min-w-0`}
                           >
                             {activeChat.type !== "direct" && !msg.isMe && (
                               <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-2 mb-0.5 font-medium leading-none">
@@ -1359,7 +1358,7 @@ const Chats: React.FC = () => {
                                 msg.isMe
                                   ? "bg-slate-900 text-white dark:bg-green-600 rounded-br-none"
                                   : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-100 dark:border-slate-700"
-                              }`}
+                                }`}
                             >
                               {msg.attachment ? (
                                 msg.attachment.type === "image" ? (
@@ -1417,7 +1416,7 @@ const Chats: React.FC = () => {
                                     msg.isMe
                                       ? "text-slate-300"
                                       : "text-slate-400"
-                                  }`}
+                                    }`}
                                 >
                                   {formatTime(msg.time)}
                                 </p>
@@ -1514,7 +1513,7 @@ const Chats: React.FC = () => {
                         showEmojiPicker
                           ? "text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800"
                           : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                      }`}
+                        }`}
                     >
                       <Smile size={18} />
                     </Button>
@@ -1647,7 +1646,7 @@ const Chats: React.FC = () => {
                             isSelected
                               ? "bg-slate-100 dark:bg-slate-800"
                               : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                          }`}
+                            }`}
                           onClick={() => toggleMemberSelection(emp.id)}
                         >
                           {/* Custom Checkbox */}
@@ -1656,7 +1655,7 @@ const Chats: React.FC = () => {
                               isSelected
                                 ? "bg-slate-900 border-slate-900 dark:bg-green-600 dark:border-green-600"
                                 : "border-slate-300 dark:border-slate-600"
-                            }`}
+                              }`}
                           >
                             {isSelected && (
                               <Check size={14} className="text-white" />
@@ -1786,7 +1785,7 @@ const Chats: React.FC = () => {
                   pendingAction.type === "remove"
                     ? "bg-red-600 hover:bg-red-700"
                     : "bg-indigo-600 hover:bg-indigo-700"
-                }`}
+                  }`}
               >
                 Confirm
               </Button>
@@ -1836,7 +1835,7 @@ const Chats: React.FC = () => {
                       activeChat.type === "space"
                         ? "text-indigo-600 dark:text-indigo-400"
                         : "text-orange-600 dark:text-orange-400"
-                    }`}
+                      }`}
                   >
                     {activeChat.type}
                   </span>
@@ -2095,7 +2094,7 @@ const Chats: React.FC = () => {
                             isSelected
                               ? "bg-slate-100 dark:bg-slate-800"
                               : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                          }`}
+                            }`}
                           onClick={() => toggleMemberSelection(emp.id)}
                         >
                           <div
@@ -2103,7 +2102,7 @@ const Chats: React.FC = () => {
                               isSelected
                                 ? "bg-slate-900 border-slate-900 dark:bg-green-600 dark:border-green-600"
                                 : "border-slate-300 dark:border-slate-600"
-                            }`}
+                              }`}
                           >
                             {isSelected && (
                               <Check size={14} className="text-white" />
@@ -2128,10 +2127,10 @@ const Chats: React.FC = () => {
                   {employees.filter(
                     (emp) => !activeChat.members?.includes(emp.id)
                   ).length === 0 && (
-                    <p className="text-center text-sm text-slate-400 py-8">
-                      All available contacts are already in this chat.
-                    </p>
-                  )}
+                      <p className="text-center text-sm text-slate-400 py-8">
+                        All available contacts are already in this chat.
+                      </p>
+                    )}
                 </ScrollArea>
                 <p className="text-xs text-slate-400 mt-2 text-right">
                   {selectedMembers.length} selected

@@ -17,10 +17,13 @@ import {
   Moon,
   Timer,
   Wallet,
+  Settings,
+  CalendarDays,
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useUser } from "./UserProvider";
 import { useNotification } from "./NotificationProvider";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // --- Configuration ---
 const logo = "/logo.png";
@@ -49,14 +52,20 @@ const navItems: NavItem[] = [
   { label: "Payroll", to: "/user/payroll", icon: <Wallet size={20} /> },
   { label: "Apply Leave", to: "/user/leave", icon: <FileText size={20} /> },
   { label: "Meetings", to: "/user/meetings", icon: <CalendarCheck size={20} /> },
+  { label: "Holidays", to: "/user/holidays", icon: <CalendarDays size={20} /> },
+  { label: "Settings", to: "/user/settings", icon: <Settings size={20} /> },
 ];
 
-const UserSidebar: React.FC = () => {
+interface UserSidebarProps {
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
+}
+
+const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) => {
   const API_BASE_URL = import.meta.env.VITE_BASE_URL;
   const { user } = useUser();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   // --- NEW: Attendance State Logic ---
   const [isCheckedIn, setIsCheckedIn] = useState(false);
@@ -158,20 +167,14 @@ const UserSidebar: React.FC = () => {
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [setMobileOpen]);
 
   const isExpandedVisual = mobileOpen ? true : expanded;
 
   return (
     <>
       {/* --- Mobile Trigger Button (Fixed) --- */}
-      {/* --- Mobile Trigger Button (Fixed - Moved to Right) --- */}
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden fixed top-4 right-4 z-50 p-2 rounded-lg bg-slate-800 text-green-400 shadow-lg shadow-green-500/20 border border-slate-700"
-      >
-        <Menu size={24} />
-      </button>
+
 
       {/* --- Mobile Overlay --- */}
       {mobileOpen && (
@@ -329,12 +332,13 @@ const UserSidebar: React.FC = () => {
               }`}
           >
             <div className="relative">
-              <img
-                src={user.avatar}
-                className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 object-cover"
-                alt="User"
-              />
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-slate-950 rounded-full"></span>
+              <Avatar className="w-9 h-9 border border-slate-200 dark:border-slate-600">
+                <AvatarImage src={user.avatar || undefined} className="object-cover" />
+                <AvatarFallback className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-slate-950 rounded-full z-10"></span>
             </div>
             <div
               className={`flex flex-col overflow-hidden transition-all duration-300 ${isExpandedVisual ? "w-32 ml-1" : "w-0 opacity-0 hidden"

@@ -50,13 +50,17 @@ const navItems: NavItem[] = [
     { label: "Audit Logs", to: "/super-admin/audit-logs", icon: <Calendar size={20} /> },
 ];
 
-const SuperAdminSidebar: React.FC = () => {
+interface SuperAdminSidebarProps {
+    mobileOpen: boolean;
+    setMobileOpen: (open: boolean) => void;
+}
+
+const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({ mobileOpen, setMobileOpen }) => {
     const API_BASE_URL = import.meta.env.VITE_BASE_URL;
     const { user: contextUser } = useUser();
     const [userData, setUserData] = useState<any>(null);
     const navigate = useNavigate();
     const [expanded, setExpanded] = useState(true);
-    const [mobileOpen, setMobileOpen] = useState(false);
 
     // Auto-close mobile menu on resize
     useEffect(() => {
@@ -116,13 +120,7 @@ const SuperAdminSidebar: React.FC = () => {
                 />
             )}
 
-            {/* --- Mobile Trigger Button (Floating) --- */}
-            <button
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden fixed top-4 right-4 z-50 p-2 rounded-lg bg-slate-900 dark:bg-slate-800 text-white shadow-lg shadow-slate-900/20 border border-slate-800 dark:border-slate-700 hover:bg-slate-800 transition-all"
-            >
-                <Menu size={24} />
-            </button>
+
 
             {/* --- Sidebar Container --- */}
             <aside
