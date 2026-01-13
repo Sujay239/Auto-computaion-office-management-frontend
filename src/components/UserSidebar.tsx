@@ -12,6 +12,7 @@ import {
   LogIn,
   ChevronLeft,
   ChevronRight,
+  // Menu,
   Sun,
   Moon,
   Timer,
@@ -21,8 +22,9 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useUser } from "./UserProvider";
-import { useNotification } from "./NotificationProvider";
+// import { useNotification } from "./NotificationProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAttendance } from "./AttendanceProvider";
 
 // --- Configuration ---
 const logo = "/logo.png";
@@ -50,7 +52,11 @@ const navItems: NavItem[] = [
   { label: "Chats", to: "/user/chats", icon: <MessageSquare size={20} /> },
   { label: "Payroll", to: "/user/payroll", icon: <Wallet size={20} /> },
   { label: "Apply Leave", to: "/user/leave", icon: <FileText size={20} /> },
-  { label: "Meetings", to: "/user/meetings", icon: <CalendarCheck size={20} /> },
+  {
+    label: "Meetings",
+    to: "/user/meetings",
+    icon: <CalendarCheck size={20} />,
+  },
   { label: "Holidays", to: "/user/holidays", icon: <CalendarDays size={20} /> },
   { label: "Settings", to: "/user/settings", icon: <Settings size={20} /> },
 ];
@@ -60,93 +66,45 @@ interface UserSidebarProps {
   setMobileOpen: (open: boolean) => void;
 }
 
-const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) => {
+const UserSidebar: React.FC<UserSidebarProps> = ({
+  mobileOpen,
+  setMobileOpen,
+}) => {
   const API_BASE_URL = import.meta.env.VITE_BASE_URL;
   const { user } = useUser();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(true);
 
   // --- NEW: Attendance State Logic ---
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  // --- Attendance Context ---
+  const {
+    isCheckedIn,
+    hasCheckedOut,
+    checkIn,
+    checkOut,
+    isLoading: isAttendanceLoading,
+  } = useAttendance();
   const [isClockingIn, setIsClockingIn] = useState(false);
-  const { showSuccess, showError } = useNotification();
-
-  // Sync with localStorage on mount (and periodically to stay in sync with Attendance Page)
-  useEffect(() => {
-    const checkStatus = () => {
-      const status = localStorage.getItem("attendance_status");
-      setIsCheckedIn(status === "clocked_in");
-    };
-
-    checkStatus(); // Initial check
-
-    // Listen for storage events (if changed in another tab)
-    window.addEventListener("storage", checkStatus);
-
-    // Optional: Poll every second to catch changes made on Attendance Page within same tab
-    const interval = setInterval(checkStatus, 1000);
-
-    return () => {
-      window.removeEventListener("storage", checkStatus);
-      clearInterval(interval);
-    };
-  }, []);
 
   const handleClockAction = async () => {
-    if (isClockingIn) return;
+    if (isClockingIn || hasCheckedOut || isAttendanceLoading) return;
     setIsClockingIn(true);
-
     try {
-      if (!isCheckedIn) {
-        // Clock In
-        const response = await fetch(`${API_BASE_URL}/employee/dashboard/clock-in`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          await response.json();
-          const now = Date.now();
-          localStorage.setItem("attendance_status", "clocked_in");
-          localStorage.setItem("attendance_start_time", now.toString());
-          setIsCheckedIn(true);
-          showSuccess("Clocked In Successfully!");
-        } else {
-          const errorData = await response.json();
-          showError(errorData.message || "Clock In Failed");
-        }
+      if (isCheckedIn) {
+        await checkOut();
       } else {
-        // Clock Out
-        const response = await fetch(`${API_BASE_URL}/employee/dashboard/clock-out`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          await response.json();
-          localStorage.removeItem("attendance_status");
-          localStorage.removeItem("attendance_start_time");
-          setIsCheckedIn(false);
-          showSuccess("Clocked Out Successfully!");
-        } else {
-          const errorData = await response.json();
-          showError(errorData.message || "Clock Out Failed");
-        }
+        await checkIn();
       }
-    } catch (error) {
-      console.error("Clock Action Error:", error);
-      showError("Failed to update attendance. Please try again.");
     } finally {
       setIsClockingIn(false);
     }
   };
+
   const handleLogout = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/auth/logout`, {
         method: "POST",
-        credentials: 'include'
+        credentials: "include",
       });
       if (res.ok) {
         navigate("/login");
@@ -172,13 +130,11 @@ const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) 
 
   return (
     <>
-      {/* --- Mobile Trigger Button (Fixed) --- */}
-
 
       {/* --- Mobile Overlay --- */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden pointer-events-auto"
+          className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm lg:hidden pointer-events-auto"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -186,7 +142,7 @@ const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) 
       {/* --- Main Sidebar --- */}
       <aside
         className={`
-          fixed lg:static top-0 left-0 z-50 h-screen bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/50
+          fixed lg:static top-0 left-0 z-[100] h-screen bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/50
           transition-all duration-300 ease-in-out flex flex-col
           ${isExpandedVisual ? "w-72" : "w-20"}
           ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -198,8 +154,9 @@ const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) 
             <img
               src={isExpandedVisual ? logo : mobileLogo}
               alt="Logo"
-              className={`object-contain transition-all duration-300 ${isExpandedVisual ? "w-full h-10" : "w-8 h-8 mx-auto"
-                }`}
+              className={`object-contain transition-all duration-300 ${
+                isExpandedVisual ? "w-full h-10" : "w-8 h-8 mx-auto"
+              }`}
             />
           </div>
 
@@ -225,9 +182,10 @@ const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) 
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) => `
                   group relative flex items-center p-3 rounded-xl transition-all duration-300 ease-in-out hover:scale-105 hover:ml-2 hover:font-bold
-                  ${isActive
-                    ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-transparent"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
+                  ${
+                    isActive
+                      ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-transparent"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
                   }
                   ${isExpandedVisual ? "" : "justify-center"}
                 `}
@@ -236,10 +194,11 @@ const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) 
                   {item.icon}
                 </div>
                 <span
-                  className={`overflow-hidden whitespace-nowrap transition-all duration-300 ${isExpandedVisual
-                    ? "w-40 ml-3 opacity-100"
-                    : "w-0 opacity-0 hidden"
-                    }`}
+                  className={`overflow-hidden whitespace-nowrap transition-all duration-300 ${
+                    isExpandedVisual
+                      ? "w-40 ml-3 opacity-100"
+                      : "w-0 opacity-0 hidden"
+                  }`}
                 >
                   {item.label}
                 </span>
@@ -257,38 +216,51 @@ const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) 
               expanded={isExpandedVisual}
             >
               <button
-                disabled={isClockingIn}
+                disabled={isClockingIn || hasCheckedOut || isAttendanceLoading}
                 onClick={handleClockAction}
                 className={`
                 w-full flex items-center rounded-xl transition-all duration-300 group relative overflow-hidden cursor-pointer
-                ${isCheckedIn
+                ${
+                  isCheckedIn
                     ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" // Red when clocked in
+                    : hasCheckedOut
+                    ? "bg-slate-400 text-white cursor-not-allowed"
                     : "bg-green-500 hover:bg-green-600 text-white shadow-green-500/20" // Green when clocked out
-                  }
+                }
                 ${isExpandedVisual ? "px-4 py-3" : "p-3 justify-center"}
                 disabled:opacity-70 disabled:cursor-not-allowed
               `}
               >
                 {isCheckedIn ? (
                   <Timer size={20} className="relative z-10 animate-pulse" />
+                ) : hasCheckedOut ? (
+                  <CheckSquare size={20} className="relative z-10" />
                 ) : (
                   <LogIn size={20} className="relative z-10" />
                 )}
 
                 <span
-                  className={`font-bold whitespace-nowrap ml-3 transition-all duration-300 relative z-10 ${isExpandedVisual
-                    ? "w-auto opacity-100 font-bold"
-                    : "w-0 opacity-0 hidden"
-                    }`}
+                  className={`font-bold whitespace-nowrap ml-3 transition-all duration-300 relative z-10 ${
+                    isExpandedVisual
+                      ? "w-auto opacity-100 font-bold"
+                      : "w-0 opacity-0 hidden"
+                  }`}
                 >
-                  {isCheckedIn ? "Clock Out" : "Check In"}
-                  {isClockingIn && <span className="ml-2 w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin inline-block"></span>}
+                  {isCheckedIn
+                    ? "Clock Out"
+                    : hasCheckedOut
+                    ? "Done for Today"
+                    : "Check In"}
+                  {isClockingIn && (
+                    <span className="ml-2 w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin inline-block"></span>
+                  )}
                 </span>
 
                 {!isExpandedVisual && (
                   <div
-                    className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${isCheckedIn ? "bg-red-500/10" : "bg-green-500/10"
-                      }`}
+                    className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+                      isCheckedIn ? "bg-red-500/10" : "bg-green-500/10"
+                    }`}
                   />
                 )}
               </button>
@@ -300,18 +272,20 @@ const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) 
                 onClick={handleLogout}
                 className={`
                 w-full flex items-center rounded-xl transition-all duration-300 group cursor-pointer
-                ${isExpandedVisual
+                ${
+                  isExpandedVisual
                     ? "bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 px-4 py-3"
                     : "bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-3 justify-center"
-                  }
+                }
               `}
               >
                 <LogOut size={20} />
                 <span
-                  className={` whitespace-nowrap ml-3 transition-all duration-300 font-bold ${isExpandedVisual
-                    ? "w-auto opacity-100"
-                    : "w-0 opacity-0 hidden"
-                    }`}
+                  className={` whitespace-nowrap ml-3 transition-all duration-300 font-bold ${
+                    isExpandedVisual
+                      ? "w-auto opacity-100"
+                      : "w-0 opacity-0 hidden"
+                  }`}
                 >
                   Logout
                 </span>
@@ -319,20 +293,23 @@ const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) 
             </TooltipWrapper>
           </div>
 
-
           {/* User Profile */}
           <div
             onClick={() => {
-              navigate('/user/settings');
+              navigate("/user/settings");
               setMobileOpen(false);
               window.location.reload();
             }}
-            className={`flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${isExpandedVisual ? "" : "justify-center"
-              }`}
+            className={`flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${
+              isExpandedVisual ? "" : "justify-center"
+            }`}
           >
             <div className="relative">
               <Avatar className="w-9 h-9 border border-slate-200 dark:border-slate-600">
-                <AvatarImage src={user.avatar || undefined} className="object-cover" />
+                <AvatarImage
+                  src={user.avatar || undefined}
+                  className="object-cover"
+                />
                 <AvatarFallback className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                 </AvatarFallback>
@@ -340,8 +317,9 @@ const UserSidebar: React.FC<UserSidebarProps> = ({ mobileOpen, setMobileOpen }) 
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-slate-950 rounded-full z-10"></span>
             </div>
             <div
-              className={`flex flex-col overflow-hidden transition-all duration-300 ${isExpandedVisual ? "w-32 ml-1" : "w-0 opacity-0 hidden"
-                }`}
+              className={`flex flex-col overflow-hidden transition-all duration-300 ${
+                isExpandedVisual ? "w-32 ml-1" : "w-0 opacity-0 hidden"
+              }`}
             >
               <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                 {user.name}
