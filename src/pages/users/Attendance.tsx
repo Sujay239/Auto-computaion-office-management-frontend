@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import ClockOutConfirmationDialog from "../../components/ClockOutConfirmationDialog";
 
 // --- Types ---
 type AttendanceStatus = "Present" | "Late" | "Absent" | "Half Day";
@@ -56,6 +57,7 @@ const Attendance = () => {
     useAttendance();
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [isClockingIn, setIsClockingIn] = useState(false);
+  const [showClockOutModal, setShowClockOutModal] = useState(false);
   const [history, setHistory] = useState<AttendanceRecord[]>([]);
   const [stats, setStats] = useState({
     totalWorkingDays: 0,
@@ -492,6 +494,17 @@ const Attendance = () => {
           </div>
         </div>
       </div>
+      {/* Clock Out Confirmation Modal */}
+      <ClockOutConfirmationDialog
+        isOpen={showClockOutModal}
+        onClose={() => setShowClockOutModal(false)}
+        onConfirm={async () => {
+          // const loading = isClockingIn;
+          await checkOut();
+          fetchAttendanceHistory(); // Refetch history if needed
+          setShowClockOutModal(false);
+        }}
+      />
     </div>
   );
 };
