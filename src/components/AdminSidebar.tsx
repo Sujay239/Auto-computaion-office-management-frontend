@@ -10,7 +10,6 @@ import {
     LogOut,
     ChevronLeft,
     ChevronRight,
-    Menu,
     Sun,
     Moon,
     // Shield,
@@ -296,7 +295,7 @@ const TooltipWrapper = ({ children, text, expanded }: { children: React.ReactNod
             {/* Render tooltip in portal when sidebar is collapsed (expanded=false) */}
             {!expanded && show && createPortal(
                 <div
-                    className="fixed z-[9999] px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-md shadow-lg animate-in fade-in zoom-in-95 duration-200 pointer-events-none whitespace-nowrap"
+                    className="fixed z-9999 px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-md shadow-lg animate-in fade-in zoom-in-95 duration-200 pointer-events-none whitespace-nowrap"
                     style={{
                         top: coords.top,
                         left: coords.left,
