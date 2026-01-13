@@ -41,6 +41,7 @@ interface AttendanceRecord {
 const AdminAttendance: React.FC = () => {
   const { showError } = useNotification();
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+  const [holidayName, setHolidayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // View Mode: 'daily' (default) or 'history'
@@ -93,7 +94,21 @@ const AdminAttendance: React.FC = () => {
       }
 
       const data = await response.json();
-      setAttendanceData(data);
+
+      // Handle both array (legacy/history) and object (new daily format)
+      if (Array.isArray(data)) {
+        setAttendanceData(data);
+        setHolidayName(null); // Reset for history view
+      } else {
+        setAttendanceData(data.attendanceData);
+        if (data.holidayStatus?.isSunday) {
+          setHolidayName("Sunday");
+        } else if (data.holidayStatus?.isHoliday) {
+          setHolidayName(data.holidayStatus.name || "Holiday");
+        } else {
+          setHolidayName(null);
+        }
+      }
     } catch (error) {
       console.error("Error fetching attendance:", error);
       showError("Failed to fetch attendance data");
@@ -169,10 +184,11 @@ const AdminAttendance: React.FC = () => {
             <div className="flex items-center space-x-2 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
               <Label
                 htmlFor="view-mode"
-                className={`text-sm cursor-pointer transition-all ${viewMode === "daily"
+                className={`text-sm cursor-pointer transition-all ${
+                  viewMode === "daily"
                     ? "font-bold text-slate-900 dark:text-white underline decoration-2 underline-offset-4"
                     : "text-slate-500 dark:text-slate-500"
-                  }`}
+                }`}
               >
                 Daily
               </Label>
@@ -185,10 +201,11 @@ const AdminAttendance: React.FC = () => {
               />
               <Label
                 htmlFor="view-mode"
-                className={`text-sm cursor-pointer transition-all ${viewMode === "history"
+                className={`text-sm cursor-pointer transition-all ${
+                  viewMode === "history"
                     ? "font-bold text-slate-900 dark:text-white underline decoration-2 underline-offset-4"
                     : "text-slate-500 dark:text-slate-500"
-                  }`}
+                }`}
               >
                 History
               </Label>
@@ -346,6 +363,20 @@ const AdminAttendance: React.FC = () => {
               <div className="p-10 text-center text-slate-500">
                 Loading attendance data...
               </div>
+            ) : holidayName ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center bg-amber-50/50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/20">
+                <div className="p-4 bg-amber-100 dark:bg-amber-900/20 rounded-full mb-4">
+                  <CalendarCheck className="w-8 h-8 text-amber-600 dark:text-amber-500" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                  {holidayName} - No Attendance Today
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 max-w-sm">
+                  Attendance tracking is paused for{" "}
+                  {holidayName === "Sunday" ? "Sundays" : "official holidays"}.
+                  Enjoy your day off!
+                </p>
+              </div>
             ) : attendanceData.length > 0 ? (
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -403,23 +434,27 @@ const AdminAttendance: React.FC = () => {
                         <Badge
                           variant="outline"
                           className={`
-                                            ${record.status === "Present"
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : ""
-                            }
-                                            ${record.status === "Absent"
-                              ? "bg-red-50 text-red-700 border-red-200"
-                              : ""
-                            }
-                                            ${record.status === "Late"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : ""
-                            }
-                                            ${record.status === "Half Day" ||
-                              record.status === "On Leave"
-                              ? "bg-blue-50 text-blue-700 border-blue-200"
-                              : ""
-                            }
+                                            ${
+                                              record.status === "Present"
+                                                ? "bg-green-50 text-green-700 border-green-200"
+                                                : ""
+                                            }
+                                            ${
+                                              record.status === "Absent"
+                                                ? "bg-red-50 text-red-700 border-red-200"
+                                                : ""
+                                            }
+                                            ${
+                                              record.status === "Late"
+                                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                                : ""
+                                            }
+                                            ${
+                                              record.status === "Half Day" ||
+                                              record.status === "On Leave"
+                                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                                : ""
+                                            }
                                         `}
                         >
                           {record.status}
@@ -441,6 +476,18 @@ const AdminAttendance: React.FC = () => {
         <div className="md:hidden space-y-4">
           {loading ? (
             <div className="p-10 text-center text-slate-500">Loading...</div>
+          ) : holidayName ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center bg-amber-50/50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/20">
+              <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-full mb-3">
+                <CalendarCheck className="w-6 h-6 text-amber-600 dark:text-amber-500" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
+                {holidayName}
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                No Attendance Today
+              </p>
+            </div>
           ) : attendanceData.length > 0 ? (
             attendanceData.map((record, index) => (
               <Card
@@ -467,22 +514,26 @@ const AdminAttendance: React.FC = () => {
                   <Badge
                     variant="outline"
                     className={`
-                                        ${record.status === "Present"
-                        ? "bg-green-50 text-green-700 border-green-200"
-                        : ""
-                      }
-                                        ${record.status === "Absent"
-                        ? "bg-red-50 text-red-700 border-red-200"
-                        : ""
-                      }
-                                        ${record.status === "Late"
-                        ? "bg-amber-50 text-amber-700 border-amber-200"
-                        : ""
-                      }
-                                        ${record.status === "Half Day"
-                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                        : ""
-                      }
+                                        ${
+                                          record.status === "Present"
+                                            ? "bg-green-50 text-green-700 border-green-200"
+                                            : ""
+                                        }
+                                        ${
+                                          record.status === "Absent"
+                                            ? "bg-red-50 text-red-700 border-red-200"
+                                            : ""
+                                        }
+                                        ${
+                                          record.status === "Late"
+                                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                                            : ""
+                                        }
+                                        ${
+                                          record.status === "Half Day"
+                                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                                            : ""
+                                        }
                                     `}
                   >
                     {record.status}
