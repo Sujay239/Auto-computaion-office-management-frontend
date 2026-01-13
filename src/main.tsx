@@ -7,6 +7,8 @@ import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-        <App />
+    <div className="mt-20">
+      <App />
+    </div>
   </React.StrictMode>
 );
