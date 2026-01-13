@@ -12,7 +12,6 @@ import {
   LogIn,
   ChevronLeft,
   ChevronRight,
-  // Menu,
   Sun,
   Moon,
   Timer,
@@ -25,6 +24,7 @@ import { useUser } from "./UserProvider";
 // import { useNotification } from "./NotificationProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAttendance } from "./AttendanceProvider";
+import ClockOutConfirmationDialog from "./ClockOutConfirmationDialog";
 
 // --- Configuration ---
 const logo = "/logo.png";
@@ -85,18 +85,20 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
     isLoading: isAttendanceLoading,
   } = useAttendance();
   const [isClockingIn, setIsClockingIn] = useState(false);
+  const [showClockOutModal, setShowClockOutModal] = useState(false);
 
   const handleClockAction = async () => {
     if (isClockingIn || hasCheckedOut || isAttendanceLoading) return;
-    setIsClockingIn(true);
-    try {
-      if (isCheckedIn) {
-        await checkOut();
-      } else {
+
+    if (isCheckedIn) {
+      setShowClockOutModal(true);
+    } else {
+      setIsClockingIn(true);
+      try {
         await checkIn();
+      } finally {
+        setIsClockingIn(false);
       }
-    } finally {
-      setIsClockingIn(false);
     }
   };
 
@@ -130,7 +132,6 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
 
   return (
     <>
-
       {/* --- Mobile Overlay --- */}
       {mobileOpen && (
         <div
@@ -345,6 +346,17 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
           )}
         </div>
       </aside>
+
+      {/* Clock Out Confirmation Modal */}
+      <ClockOutConfirmationDialog
+        isOpen={showClockOutModal}
+        onClose={() => setShowClockOutModal(false)}
+        onConfirm={async () => {
+          // For safety could set a loading state here too if checkOut is slow
+          await checkOut();
+          setShowClockOutModal(false);
+        }}
+      />
     </>
   );
 };
