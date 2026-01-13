@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNotification } from "../../components/NotificationProvider";
+import { useAttendance } from "../../components/AttendanceProvider";
+// import { useNotification } from "../../components/NotificationProvider";
 import {
   CalendarDays,
   MapPin,
@@ -39,16 +40,20 @@ const Attendance = () => {
     if (!isoString) return "--";
     try {
       const date = new Date(isoString);
-      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
     } catch (e) {
       return "--";
     }
   };
 
   // State for Clock In/Out status
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
-
+  // --- Attendance Context ---
+  const { isCheckedIn, hasCheckedOut, startTime, checkIn, checkOut } =
+    useAttendance();
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [isClockingIn, setIsClockingIn] = useState(false);
   const [history, setHistory] = useState<AttendanceRecord[]>([]);
@@ -56,7 +61,7 @@ const Attendance = () => {
     totalWorkingDays: 0,
     presentDays: 0,
     lateArrivals: 0,
-    leavesTaken: 0
+    leavesTaken: 0,
   });
 
   const API_BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -64,13 +69,16 @@ const Attendance = () => {
   // Real-time clock for the header
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  const { showSuccess } = useNotification();
+  // const { showSuccess } = useNotification();
 
   const fetchAttendanceHistory = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/employee/attendance/history`, {
-        credentials: "include"
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/employee/attendance/history`,
+        {
+          credentials: "include",
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         setHistory(data.history);
@@ -83,16 +91,6 @@ const Attendance = () => {
 
   useEffect(() => {
     fetchAttendanceHistory();
-    // ... existing logic ...
-    const storedStatus = localStorage.getItem("attendance_status");
-    const storedStartTime = localStorage.getItem("attendance_start_time");
-
-    if (storedStatus === "clocked_in") {
-      setIsCheckedIn(true);
-      if (storedStartTime) {
-        setStartTime(parseInt(storedStartTime));
-      }
-    }
   }, []);
 
   // --- 2. TIMER LOGIC ---
@@ -102,7 +100,6 @@ const Attendance = () => {
 
     // Duration timer (only runs if checked in)
     let timerInterval: ReturnType<typeof setInterval> | undefined;
-
 
     if (isCheckedIn && startTime) {
       timerInterval = setInterval(() => {
@@ -131,57 +128,19 @@ const Attendance = () => {
   }, [isCheckedIn, startTime]);
 
   // --- HANDLERS ---
+  // --- HANDLERS ---
   const handleClockAction = async () => {
-    if (isClockingIn) return;
+    if (isClockingIn || hasCheckedOut) return;
     setIsClockingIn(true);
 
     try {
-      if (!isCheckedIn) {
-        // CLOCK IN
-        const response = await fetch(`${API_BASE_URL}/employee/dashboard/clock-in`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          await response.json();
-          const now = Date.now();
-          setIsCheckedIn(true);
-          setStartTime(now);
-          localStorage.setItem("attendance_status", "clocked_in");
-          localStorage.setItem("attendance_start_time", now.toString());
-          await fetchAttendanceHistory(); // Refresh history
-          showSuccess("Clocked in successfully!");
-        } else {
-          const errorData = await response.json();
-          showSuccess(errorData.message || "Clock In Failed"); // Kept showSuccess as per original code style if preferred, but showError is better. Let's stick to simple notification.
-        }
+      if (isCheckedIn) {
+        await checkOut();
+        await fetchAttendanceHistory();
       } else {
-        // CLOCK OUT
-        const response = await fetch(`${API_BASE_URL}/employee/dashboard/clock-out`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          await response.json();
-          setIsCheckedIn(false);
-          setStartTime(null);
-          setElapsedTime("00:00:00");
-          localStorage.removeItem("attendance_status");
-          localStorage.removeItem("attendance_start_time");
-          await fetchAttendanceHistory(); // Refresh history
-          showSuccess("Clocked out successfully. Have a great evening!");
-        } else {
-          const errorData = await response.json();
-          showSuccess(errorData.message || "Clock Out Failed");
-        }
+        await checkIn();
+        await fetchAttendanceHistory();
       }
-    } catch (error) {
-      console.error("Clock Action Error:", error);
-      showSuccess("Failed to update attendance. Please try again.");
     } finally {
       setIsClockingIn(false);
     }
@@ -277,10 +236,11 @@ const Attendance = () => {
               <div
                 className={`
                     w-40 h-40 rounded-full border-4 flex items-center justify-center mb-6 shadow-2xl transition-all duration-500 relative
-                    ${isCheckedIn
-                    ? "border-green-500 bg-green-500/10 shadow-green-500/20"
-                    : "border-slate-500 bg-white/5 shadow-black/40"
-                  }
+                    ${
+                      isCheckedIn
+                        ? "border-green-500 bg-green-500/10 shadow-green-500/20"
+                        : "border-slate-500 bg-white/5 shadow-black/40"
+                    }
                 `}
               >
                 <div className="text-center">
@@ -291,10 +251,10 @@ const Attendance = () => {
                     {isCheckedIn
                       ? elapsedTime
                       : currentTime.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      })}
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })}
                   </span>
                 </div>
               </div>
@@ -302,18 +262,27 @@ const Attendance = () => {
               {/* Clock Button */}
               <div className="w-full max-w-xs space-y-4">
                 <Button
-                  disabled={isClockingIn}
+                  disabled={isClockingIn || hasCheckedOut}
                   onClick={handleClockAction}
                   className={`
                             w-full h-12 text-lg font-bold rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed
-                            ${isCheckedIn
-                      ? "bg-red-600 hover:bg-red-700 text-white shadow-red-900/20 border-none"
-                      : "bg-green-500 hover:bg-green-600 text-white shadow-green-900/20 border-none"
-                    }
+                            ${
+                              isCheckedIn
+                                ? "bg-red-600 hover:bg-red-700 text-white shadow-red-900/20 border-none"
+                                : hasCheckedOut
+                                ? "bg-slate-500 text-white cursor-not-allowed border-none"
+                                : "bg-green-500 hover:bg-green-600 text-white shadow-green-900/20 border-none"
+                            }
                         `}
                 >
-                  {isCheckedIn ? "Clock Out" : "Clock In"}
-                  {isClockingIn && <span className="ml-2 w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin inline-block"></span>}
+                  {isCheckedIn
+                    ? "Clock Out"
+                    : hasCheckedOut
+                    ? "Done for Today"
+                    : "Clock In"}
+                  {isClockingIn && (
+                    <span className="ml-2 w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin inline-block"></span>
+                  )}
                 </Button>
 
                 <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
@@ -364,12 +333,21 @@ const Attendance = () => {
               </CardHeader>
               <CardContent>
                 {history.slice(0, 2).map((record) => (
-                  <div key={record.id} className="flex items-center justify-between text-sm py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                  <div
+                    key={record.id}
+                    className="flex items-center justify-between text-sm py-2 border-b border-slate-100 dark:border-slate-800 last:border-0"
+                  >
                     <span className="text-slate-900 dark:text-slate-200">
-                      {record.date === new Date().toISOString().split('T')[0] ? "Today" : new Date(record.date).toLocaleDateString("en-US", { day: "numeric", month: "short" })}
+                      {record.date === new Date().toISOString().split("T")[0]
+                        ? "Today"
+                        : new Date(record.date).toLocaleDateString("en-US", {
+                            day: "numeric",
+                            month: "short",
+                          })}
                     </span>
                     <span className="font-mono text-slate-500">
-                      {formatTime(record.checkIn)} - {formatTime(record.checkOut)}
+                      {formatTime(record.checkIn)} -{" "}
+                      {formatTime(record.checkOut)}
                     </span>
                   </div>
                 ))}
