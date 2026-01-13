@@ -25,6 +25,7 @@ import { Separator } from "@/components/ui/separator";
 // import { useNotification } from "@/components/NotificationProvider";
 const API_BASE_URL = import.meta.env.VITE_BASE_URL;
 import { useAttendance } from "../../components/AttendanceProvider";
+import ClockOutConfirmationDialog from "../../components/ClockOutConfirmationDialog";
 
 /**
  * Utility to format seconds into HH:MM:SS
@@ -68,6 +69,7 @@ const UserHome: React.FC = () => {
     useAttendance();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isClockingIn, setIsClockingIn] = useState(false); // Local loading state for button feedback
+  const [showClockOutModal, setShowClockOutModal] = useState(false);
 
   // --- Dashboard Data State ---
   const [statsData, setStatsData] = useState<DashboardStats | null>(null);
@@ -550,6 +552,16 @@ const UserHome: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Clock Out Confirmation Modal */}
+      <ClockOutConfirmationDialog
+        isOpen={showClockOutModal}
+        onClose={() => setShowClockOutModal(false)}
+        onConfirm={async () => {
+          //  const loading = isClockingIn;
+          await checkOut();
+          setShowClockOutModal(false);
+        }}
+      />
     </div>
   );
 };
