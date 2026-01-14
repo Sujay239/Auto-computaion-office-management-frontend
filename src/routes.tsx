@@ -24,6 +24,7 @@ import PastEmployees from './pages/admin/PastEmployees';
 import AdminHolidays from './pages/admin/AdminHolidays';
 import AdminTasks from './pages/admin/AdminTasks';
 import AdminMeetings from './pages/admin/AdminMeetings';
+import AllowedIPs from './pages/admin/AllowedIPs';
 import Login from './pages/auth/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import Unauthorized from './pages/error/Unauthorized';
@@ -167,6 +168,10 @@ const routes: RouteObject[] = [
         path: "chats",
         element: <Chats />,
       },
+      {
+        path: "allowed-ips",
+        element: <AllowedIPs />,
+      },
     ],
   },
   {
@@ -234,6 +239,10 @@ const routes: RouteObject[] = [
       {
         path: "chats",
         element: <Chats />,
+      },
+      {
+        path: "allowed-ips",
+        element: <AllowedIPs />,
       },
     ],
   },

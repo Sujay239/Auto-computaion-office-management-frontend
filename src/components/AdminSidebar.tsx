@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Sun,
   Moon,
-  // Shield,
+  Shield,
   CalendarCheck,
   Calendar,
   Clock,
@@ -55,6 +55,11 @@ const navItems: NavItem[] = [
     label: "Past Employees",
     to: "/admin/past-employees",
     icon: <Clock size={20} />,
+  },
+  {
+    label: "Allowed IPs",
+    to: "/admin/allowed-ips",
+    icon: <Shield size={20} />,
   },
 ];
 
@@ -138,10 +143,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800
           transition-all duration-300 ease-in-out
           flex flex-col
-          ${
-            mobileOpen
-              ? "translate-x-0 w-64 shadow-2xl"
-              : "-translate-x-full lg:translate-x-0"
+          ${mobileOpen
+            ? "translate-x-0 w-64 shadow-2xl"
+            : "-translate-x-full lg:translate-x-0"
           }
           ${expanded ? "lg:w-64" : "lg:w-20"}
         `}
@@ -149,18 +153,16 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         {/* Logo Section */}
         <div className="h-20 flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800/50">
           <div
-            className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${
-              expanded
-                ? "w-full"
-                : "absolute left-0 w-full justify-center lg:justify-center"
-            }`}
+            className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${expanded
+              ? "w-full"
+              : "absolute left-0 w-full justify-center lg:justify-center"
+              }`}
           >
             <img
               src={expanded ? logo : mobileLogo}
               alt="Logo"
-              className={`transition-all duration-300 ${
-                expanded ? "h-8" : "h-8 lg:h-10 lg:w-10 object-contain"
-              }`}
+              className={`transition-all duration-300 ${expanded ? "h-8" : "h-8 lg:h-10 lg:w-10 object-contain"
+                }`}
             />
           </div>
 
@@ -183,11 +185,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) => `
                     flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden
-                    ${
-                      isActive
-                        ? "bg-slate-900 text-white shadow-md shadow-slate-900/20 dark:bg-white dark:text-slate-900"
-                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-                    }
+                    ${isActive
+                    ? "bg-slate-900 text-white shadow-md shadow-slate-900/20 dark:bg-white dark:text-slate-900"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                  }
                     ${!isExpandedVisual ? "justify-center" : ""}
                   `}
               >
@@ -197,11 +198,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 <span
                   className={`
                       whitespace-nowrap font-medium transition-all duration-300 relative z-10
-                      ${
-                        isExpandedVisual
-                          ? "w-auto opacity-100 ml-1"
-                          : "w-0 opacity-0 hidden"
-                      }
+                      ${isExpandedVisual
+                      ? "w-auto opacity-100 ml-1"
+                      : "w-0 opacity-0 hidden"
+                    }
                     `}
                 >
                   {item.label}
@@ -218,20 +218,18 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 onClick={handleLogout}
                 className={`
                 flex items-center rounded-xl transition-all duration-200 w-full group cursor-pointer
-                ${
-                  isExpandedVisual
+                ${isExpandedVisual
                     ? "bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 px-4 py-3"
                     : "bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-3 justify-center"
-                }
+                  }
               `}
               >
                 <LogOut size={20} />
                 <span
-                  className={` whitespace-nowrap ml-3 transition-all duration-300 font-bold ${
-                    isExpandedVisual
-                      ? "w-auto opacity-100"
-                      : "w-0 opacity-0 hidden"
-                  }`}
+                  className={` whitespace-nowrap ml-3 transition-all duration-300 font-bold ${isExpandedVisual
+                    ? "w-auto opacity-100"
+                    : "w-0 opacity-0 hidden"
+                    }`}
                 >
                   Logout
                 </span>
@@ -241,9 +239,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
           {/* User Profile */}
           <div
-            className={`flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${
-              isExpandedVisual ? "" : "justify-center"
-            }`}
+            className={`flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${isExpandedVisual ? "" : "justify-center"
+              }`}
             onClick={() => {
               navigate("/admin/settings");
               setMobileOpen(false);
@@ -255,7 +252,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   userData?.avatar_url
                     ? `${API_BASE_URL}/uploads/${userData.avatar_url}`
                     : contextUser.avatar ||
-                      "https://ui-avatars.com/api/?name=Admin"
+                    "https://ui-avatars.com/api/?name=Admin"
                 }
                 className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 object-cover"
                 alt="User"
@@ -263,9 +260,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-slate-950 rounded-full"></span>
             </div>
             <div
-              className={`flex flex-col overflow-hidden transition-all duration-300 ${
-                isExpandedVisual ? "w-32 ml-1" : "w-0 opacity-0 hidden"
-              }`}
+              className={`flex flex-col overflow-hidden transition-all duration-300 ${isExpandedVisual ? "w-32 ml-1" : "w-0 opacity-0 hidden"
+                }`}
             >
               <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                 {userData ? userData.name : "Admin User"}
