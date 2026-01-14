@@ -250,7 +250,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
               <img
                 src={
                   userData?.avatar_url
-                    ? `${API_BASE_URL}/uploads/${userData.avatar_url}`
+                    ? `${userData.avatar_url}`
                     : contextUser.avatar ||
                     "https://ui-avatars.com/api/?name=Admin"
                 }

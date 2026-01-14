@@ -184,8 +184,8 @@ const SuperAdminDashboard: React.FC = () => {
     // Calculate Chart Data
     const chartData = React.useMemo(() => {
         if (!stats?.payroll_history || stats.payroll_history.length === 0) return [];
-        const maxAmount = Math.max(...stats.payroll_history.map(h => h.amount));
-        return stats.payroll_history.map(h => ({
+        const maxAmount = Math.max(...stats.payroll_history.map((h: any) => h.amount));
+        return stats.payroll_history.map((h: any) => ({
             m: h.month,
             h: maxAmount > 0 ? `${(h.amount / maxAmount) * 100}%` : '0%',
             v: `₹${h.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
@@ -292,7 +292,7 @@ const SuperAdminDashboard: React.FC = () => {
                             <CardContent>
                                 {chartData.length > 0 ? (
                                     <div className="h-64 flex items-end justify-between gap-4 mt-4 px-2">
-                                        {chartData.map((bar, i) => (
+                                        {chartData.map((bar : any, i : any) => (
                                             <div key={i} className="flex flex-col items-center gap-2 w-full group cursor-pointer">
                                                 <div className="text-xs font-bold text-slate-700 dark:text-white opacity-0 group-hover:opacity-100 transition-opacity mb-1">{bar.v}</div>
                                                 <div
@@ -334,7 +334,7 @@ const SuperAdminDashboard: React.FC = () => {
                                     {!stats?.pending_leaves.length ? (
                                         <div className="text-center text-slate-500 py-4 text-sm">No pending leave requests</div>
                                     ) : (
-                                        stats.pending_leaves.map((req, i) => (
+                                        stats.pending_leaves.map((req : any, i : any) => (
                                             <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                                                 <div className="flex items-center gap-4">
                                                     <Avatar className="h-10 w-10 border border-slate-200 dark:border-slate-700">
@@ -376,7 +376,7 @@ const SuperAdminDashboard: React.FC = () => {
                                 {!stats?.upcoming_holidays.length ? (
                                     <div className="text-center text-slate-500 py-4 text-sm">No upcoming holidays</div>
                                 ) : (
-                                    stats.upcoming_holidays.map((holiday, i) => (
+                                    stats.upcoming_holidays.map((holiday : any, i : any) => (
                                         <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                                             <div>
                                                 <p className="font-medium text-slate-900 dark:text-white text-sm">{holiday.name}</p>
@@ -457,7 +457,7 @@ const SuperAdminDashboard: React.FC = () => {
                                 <Input
                                     placeholder="e.g. Office Closed on Friday"
                                     value={announcementData.subject}
-                                    onChange={(e) => setAnnouncementData(prev => ({ ...prev, subject: e.target.value }))}
+                                    onChange={(e) => setAnnouncementData(prev  => ({ ...prev, subject: e.target.value }))}
                                     className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                                 />
                             </div>

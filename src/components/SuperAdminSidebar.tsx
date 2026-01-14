@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import  { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
@@ -173,10 +173,9 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           bg-slate-900 dark:bg-black  border-r border-slate-800 dark:border-slate-800
           transition-all duration-300 ease-in-out
           flex flex-col text-white
-          ${
-            mobileOpen
-              ? "translate-x-0 w-64 shadow-2xl"
-              : "-translate-x-full lg:translate-x-0"
+          ${mobileOpen
+            ? "translate-x-0 w-64 shadow-2xl"
+            : "-translate-x-full lg:translate-x-0"
           }
           ${expanded ? "lg:w-64" : "lg:w-20"}
         `}
@@ -184,20 +183,18 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
         {/* Logo Section */}
         <div className="h-20 flex items-center justify-between px-4 border-b border-white/10 dark:border-white/10">
           <div
-            className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${
-              expanded
+            className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${expanded
                 ? "w-full"
                 : "absolute left-0 w-full justify-center lg:justify-center"
-            }`}
+              }`}
           >
             <img
               src={expanded ? logo : mobileLogo}
               alt="Logo"
-              className={`transition-all duration-300 ${
-                expanded
+              className={`transition-all duration-300 ${expanded
                   ? "h-8 "
                   : "h-8 lg:h-10 lg:w-10 object-contain brightness-0 invert"
-              }`}
+                }`}
             />
           </div>
 
@@ -220,11 +217,10 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) => `
                     flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden
-                    ${
-                      isActive
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-900/20"
-                        : "text-slate-400 hover:bg-white/5 hover:text-white"
-                    }
+                    ${isActive
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-900/20"
+                    : "text-slate-400 hover:bg-white/5 hover:text-white"
+                  }
                     ${!isExpandedVisual ? "justify-center" : ""}
                   `}
               >
@@ -234,11 +230,10 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                 <span
                   className={`
                       whitespace-nowrap font-medium transition-all duration-300 relative z-10
-                      ${
-                        isExpandedVisual
-                          ? "w-auto opacity-100 ml-1"
-                          : "w-0 opacity-0 hidden"
-                      }
+                      ${isExpandedVisual
+                      ? "w-auto opacity-100 ml-1"
+                      : "w-0 opacity-0 hidden"
+                    }
                     `}
                 >
                   {item.label}
@@ -257,20 +252,18 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                 onClick={handleLogout}
                 className={`
                 flex items-center rounded-xl transition-all duration-200 w-full group cursor-pointer
-                ${
-                  isExpandedVisual
+                ${isExpandedVisual
                     ? "bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400 px-4 py-3 border border-white/5"
                     : "bg-transparent hover:bg-white/5 text-slate-400 hover:text-red-400 p-3 justify-center"
-                }
+                  }
               `}
               >
                 <LogOut size={20} />
                 <span
-                  className={` whitespace-nowrap ml-3 transition-all duration-300 font-bold ${
-                    isExpandedVisual
+                  className={` whitespace-nowrap ml-3 transition-all duration-300 font-bold ${isExpandedVisual
                       ? "w-auto opacity-100"
                       : "w-0 opacity-0 hidden"
-                  }`}
+                    }`}
                 >
                   Logout
                 </span>
@@ -280,9 +273,8 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
 
           {/* User Profile */}
           <div
-            className={`flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer ${
-              isExpandedVisual ? "" : "justify-center"
-            }`}
+            className={`flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer ${isExpandedVisual ? "" : "justify-center"
+              }`}
             onClick={() => {
               navigate("/super-admin/settings");
               setMobileOpen(false);
@@ -292,9 +284,9 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               <img
                 src={
                   userData?.avatar_url
-                    ? `${API_BASE_URL}/uploads/${userData.avatar_url}`
+                    ? userData.avatar_url
                     : contextUser.avatar ||
-                      "https://ui-avatars.com/api/?name=Super+Admin"
+                    "https://ui-avatars.com/api/?name=Super+Admin"
                 }
                 className="w-9 h-9 rounded-full border border-slate-600 bg-slate-800 object-cover"
                 alt="User"
@@ -302,9 +294,8 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-blue-500 border-2 border-slate-900 rounded-full"></span>
             </div>
             <div
-              className={`flex flex-col overflow-hidden transition-all duration-300 ${
-                isExpandedVisual ? "w-32 ml-1" : "w-0 opacity-0 hidden"
-              }`}
+              className={`flex flex-col overflow-hidden transition-all duration-300 ${isExpandedVisual ? "w-32 ml-1" : "w-0 opacity-0 hidden"
+                }`}
             >
               <span className="text-sm font-semibold text-white truncate">
                 {userData ? userData.name : "Super Admin"}
