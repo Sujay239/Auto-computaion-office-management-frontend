@@ -472,10 +472,10 @@ const UserHome: React.FC = () => {
                   <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/10 w-full flex justify-between text-xs text-slate-500 dark:text-slate-400">
                     <span>Started at</span>
                     <span className="text-slate-900 dark:text-white font-medium">
-                      {new Date(new Date(startTime).getTime() + 5.5 * 60 * 60 * 1000).toLocaleTimeString([], {
+                      {new Date(startTime).toLocaleTimeString("en-US", {
                         hour: "2-digit",
                         minute: "2-digit",
-                        timeZone: "UTC",
+                        timeZone: "Asia/Kolkata",
                       })}
                     </span>
                   </div>
