@@ -1,43 +1,59 @@
-// import React from 'react'
 import { Navigate, useRoutes } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import PageLoader from './components/PageLoader';
+
+// Layouts
 import UserLayout from './layouts/UserLayout';
-import Dashboard from './pages/users/Dashboard';
-import Tasks from './pages/users/Tasks';
-import Notifications from './pages/users/Notifications';
-import Attendance from './pages/users/Attendance';
-import Chats from './pages/users/Chats';
-import ApplyLeave from './pages/users/ApplyLeave';
-import Meetings from './pages/users/Meetings';
-import Holidays from './pages/users/Holidays';
-import Settings from './pages/users/Settings';
-import Payroll from './pages/users/Payroll';
 import AdminLayout from './layouts/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import ManageAdmins from './pages/admin/ManageAdmins';
-import AdminAttendance from './pages/admin/AdminAttendance';
-import Employees from './pages/admin/Employees';
-import AdminLeaves from './pages/admin/AdminLeaves';
-import AdminPayroll from './pages/admin/AdminPayroll';
-import AdminSettings from './pages/admin/AdminSettings';
-import PastEmployees from './pages/admin/PastEmployees';
-import AdminHolidays from './pages/admin/AdminHolidays';
-import AdminTasks from './pages/admin/AdminTasks';
-import AdminMeetings from './pages/admin/AdminMeetings';
-import AllowedIPs from './pages/admin/AllowedIPs';
+import SuperAdminLayout from './layouts/SuperAdminLayout';
+
+// Auth Components (Lazy load if not critical, but typically login is critical)
 import Login from './pages/auth/Login';
 import ProtectedRoute from './components/ProtectedRoute';
-import Unauthorized from './pages/error/Unauthorized';
-import NotFound from './pages/error/NotFound';
-import ResetPassword from './pages/auth/ResetPassword';
-
-import ForgotPassword from './pages/auth/ForgotPassword';
-import Verify2FA from './pages/auth/Verify2FA';
 import TwoFactorGuard from './components/TwoFactorGuard';
-import SuperAdminLayout from './layouts/SuperAdminLayout';
-import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
-import Departments from './pages/superadmin/Departments';
-import AuditLogs from './pages/superadmin/AuditLogs';
+
+// Lazy Load Pages
+// User Pages
+const Dashboard = lazy(() => import('./pages/users/Dashboard'));
+const Tasks = lazy(() => import('./pages/users/Tasks'));
+const Notifications = lazy(() => import('./pages/users/Notifications'));
+const Attendance = lazy(() => import('./pages/users/Attendance'));
+const Chats = lazy(() => import('./pages/users/Chats'));
+const ApplyLeave = lazy(() => import('./pages/users/ApplyLeave'));
+const Meetings = lazy(() => import('./pages/users/Meetings'));
+const Holidays = lazy(() => import('./pages/users/Holidays'));
+const Settings = lazy(() => import('./pages/users/Settings'));
+const Payroll = lazy(() => import('./pages/users/Payroll'));
+
+// Admin Pages
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const ManageAdmins = lazy(() => import('./pages/admin/ManageAdmins'));
+const AdminAttendance = lazy(() => import('./pages/admin/AdminAttendance'));
+const Employees = lazy(() => import('./pages/admin/Employees'));
+const AdminLeaves = lazy(() => import('./pages/admin/AdminLeaves'));
+const AdminPayroll = lazy(() => import('./pages/admin/AdminPayroll'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const PastEmployees = lazy(() => import('./pages/admin/PastEmployees'));
+const AdminHolidays = lazy(() => import('./pages/admin/AdminHolidays'));
+const AdminTasks = lazy(() => import('./pages/admin/AdminTasks'));
+const AdminMeetings = lazy(() => import('./pages/admin/AdminMeetings'));
+const AllowedIPs = lazy(() => import('./pages/admin/AllowedIPs'));
+
+// Auth Pages (Non-critical)
+const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const Verify2FA = lazy(() => import('./pages/auth/Verify2FA'));
+
+// Super Admin Pages
+const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard'));
+const Departments = lazy(() => import('./pages/superadmin/Departments'));
+const AuditLogs = lazy(() => import('./pages/superadmin/AuditLogs'));
+
+// Error Pages
+const Unauthorized = lazy(() => import('./pages/error/Unauthorized'));
+const NotFound = lazy(() => import('./pages/error/NotFound'));
+
 
 const routes: RouteObject[] = [
   {
@@ -258,7 +274,11 @@ const routes: RouteObject[] = [
 
 const AppRoutes = () => {
   const element = useRoutes(routes);
-  return element;
+  return (
+    <Suspense fallback={<PageLoader />}>
+      {element}
+    </Suspense>
+  );
 }
 
 export default AppRoutes;

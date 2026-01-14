@@ -74,6 +74,34 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
   const { user } = useUser();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch Unread Messages Count
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/chats`, {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const totalUnread = data.reduce(
+            (acc: number, chat: any) => acc + (chat.unread || 0),
+            0
+          );
+          setUnreadCount(totalUnread);
+        }
+      } catch (error) {
+        console.error("Failed to fetch unread messages", error);
+      }
+    };
+
+    fetchUnread();
+
+    // Optional: Poll every minute to keep it roughly updated without socket overhead
+    const interval = setInterval(fetchUnread, 60000);
+    return () => clearInterval(interval);
+  }, [API_BASE_URL]);
 
   // --- NEW: Attendance State Logic ---
   // --- Attendance Context ---
@@ -195,16 +223,28 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
                   ${isExpandedVisual ? "" : "justify-center"}
                 `}
               >
-                <div className="transition-transform duration-300 group-hover:scale-110">
+                <div className="relative transition-transform duration-300 group-hover:scale-110">
                   {item.icon}
+                  {/* Collapsed Badge */}
+                  {!isExpandedVisual && item.label === "Chats" && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-950">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </div>
                 <span
-                  className={`overflow-hidden whitespace-nowrap transition-all duration-300 ${isExpandedVisual
+                  className={`overflow-hidden whitespace-nowrap transition-all duration-300 flex-1 flex items-center justify-between ${isExpandedVisual
                     ? "w-40 ml-3 opacity-100"
                     : "w-0 opacity-0 hidden"
                     }`}
                 >
                   {item.label}
+                  {/* Expanded Badge */}
+                  {item.label === "Chats" && unreadCount > 0 && (
+                    <span className="ml-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white shadow-sm">
+                      {unreadCount}
+                    </span>
+                  )}
                 </span>
               </NavLink>
             </TooltipWrapper>
@@ -322,7 +362,7 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
                 {user.name}
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-500 truncate">
-                {user.role}
+                {user.designation}
               </span>
             </div>
             {isExpandedVisual && (

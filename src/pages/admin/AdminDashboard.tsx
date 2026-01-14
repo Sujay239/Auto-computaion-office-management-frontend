@@ -15,13 +15,13 @@ import {
     Clock,
     // CheckCircle2,
     XCircle,
-    Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useNotification } from "../../components/NotificationProvider";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DashboardStats {
     total_employees: number;
@@ -195,13 +195,12 @@ const AdminDashboard: React.FC = () => {
     }, [stats]);
 
 
-    if (isLoadingStats) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-950">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            </div>
-        );
-    }
+
+
+    // ... inside component ...
+
+    // REMOVED BLOCKING LOADER
+    // if (isLoadingStats) { ... }
 
     return (
         <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 px-6 lg:p-10 animate-in fade-in duration-500">
@@ -230,12 +229,22 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{stats?.total_employees || 0}</h2>
+                            {isLoadingStats ? (
+                                <Skeleton className="h-9 w-24 mb-1" />
+                            ) : (
+                                <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{stats?.total_employees || 0}</h2>
+                            )}
                             <div className="flex items-center mt-1 text-xs">
-                                <span className="text-green-600 dark:text-green-400 flex items-center font-medium">
-                                    <TrendingUp className="h-3 w-3 mr-1" /> {stats?.employee_growth}
-                                </span>
-                                <span className="text-slate-400 dark:text-slate-500 ml-2">from last month</span>
+                                {isLoadingStats ? (
+                                    <Skeleton className="h-4 w-32" />
+                                ) : (
+                                    <>
+                                        <span className="text-green-600 dark:text-green-400 flex items-center font-medium">
+                                            <TrendingUp className="h-3 w-3 mr-1" /> {stats?.employee_growth}
+                                        </span>
+                                        <span className="text-slate-400 dark:text-slate-500 ml-2">from last month</span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </Card>
@@ -249,7 +258,11 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">₹{(stats?.payroll_cost || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h2>
+                            {isLoadingStats ? (
+                                <Skeleton className="h-9 w-32 mb-1" />
+                            ) : (
+                                <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">₹{(stats?.payroll_cost || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h2>
+                            )}
                             <div className="flex items-center mt-1 text-xs">
                                 <span className="text-slate-500 dark:text-slate-400">Next run: </span>
                                 <span className="text-slate-900 dark:text-white font-medium ml-1">End of Month</span>
@@ -266,12 +279,22 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{stats?.attendance_percentage || 0}%</h2>
+                            {isLoadingStats ? (
+                                <Skeleton className="h-9 w-16 mb-1" />
+                            ) : (
+                                <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{stats?.attendance_percentage || 0}%</h2>
+                            )}
                             <div className="flex items-center mt-1 text-xs">
-                                <span className={`${(stats?.attendance_change || 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"} flex items-center font-medium`}>
-                                    <TrendingUp className={`h-3 w-3 mr-1 ${(stats?.attendance_change || 0) < 0 ? "rotate-180" : ""}`} /> {Math.abs(stats?.attendance_change || 0)}%
-                                </span>
-                                <span className="text-slate-400 dark:text-slate-500 ml-2">vs yesterday</span>
+                                {isLoadingStats ? (
+                                    <Skeleton className="h-4 w-24" />
+                                ) : (
+                                    <>
+                                        <span className={`${(stats?.attendance_change || 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"} flex items-center font-medium`}>
+                                            <TrendingUp className={`h-3 w-3 mr-1 ${(stats?.attendance_change || 0) < 0 ? "rotate-180" : ""}`} /> {Math.abs(stats?.attendance_change || 0)}%
+                                        </span>
+                                        <span className="text-slate-400 dark:text-slate-500 ml-2">vs yesterday</span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </Card>

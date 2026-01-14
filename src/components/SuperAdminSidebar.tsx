@@ -141,6 +141,33 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch Unread Messages Count
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/chats`, {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const totalUnread = data.reduce(
+            (acc: number, chat: any) => acc + (chat.unread || 0),
+            0
+          );
+          setUnreadCount(totalUnread);
+        }
+      } catch (error) {
+        console.error("Failed to fetch unread messages", error);
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 60000);
+    return () => clearInterval(interval);
+  }, [API_BASE_URL]);
+
   const toggleSidebar = () => {
     setExpanded((prev) => !prev);
   };
@@ -231,10 +258,16 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               >
                 <span className="relative z-10 flex items-center justify-center">
                   {item.icon}
+                  {/* Collapsed Badge */}
+                  {!isExpandedVisual && item.label === "Chats" && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-950">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </span>
                 <span
                   className={`
-                      whitespace-nowrap font-medium transition-all duration-300 relative z-10
+                      whitespace-nowrap font-medium transition-all duration-300 relative z-10 flex-1 flex items-center justify-between
                       ${isExpandedVisual
                       ? "w-auto opacity-100 ml-1"
                       : "w-0 opacity-0 hidden"
@@ -242,6 +275,12 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                     `}
                 >
                   {item.label}
+                  {/* Expanded Badge */}
+                  {item.label === "Chats" && unreadCount > 0 && (
+                    <span className="ml-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white shadow-sm">
+                      {unreadCount}
+                    </span>
+                  )}
                 </span>
               </NavLink>
             </TooltipWrapper>
