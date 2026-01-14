@@ -22,7 +22,7 @@ const API_BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { showError } = useNotification();
+  const { showError, showSuccess } = useNotification();
 
   const [values, setValues] = useState<FormValues>({
     email: "",
@@ -57,7 +57,7 @@ const Login: React.FC = () => {
                   const target = role === 'super_admin' ? '/super-admin' : '/admin';
                   // If 2FA is enabled but session is not verified, go to verify page
                   if (twoFAData.twoFactorEnabled && !data.user.is2FAVerified) {
-                    navigate('/verify-2fa', { replace: true, state: { from: { pathname: target }, token: 'pending' } });
+                    navigate('/verify-2fa', { replace: true, state: { from: { pathname: target } } });
                     return;
                   }
                 }
@@ -119,8 +119,14 @@ const Login: React.FC = () => {
 
       const data = await res.json();
 
+      // --- DEBUG LOGS ---
+      console.log("Login Response Status:", res.status);
+      console.log("Login Response Data:", data);
+
       if (!res.ok) {
-        if (res.status === 409 && data.sessionActive) {
+        // RELAXED CHECK: If status is 409, show session modal regardless of data payload
+        if (res.status === 409) {
+          console.log("Creating Session Active Modal...");
           setSessionActive(true);
           setLoading(false);
           return;
@@ -142,7 +148,7 @@ const Login: React.FC = () => {
             const twoFAData = await twoFARes.json();
             if (twoFAData.twoFactorEnabled) {
               const target = data.role === 'super_admin' ? '/super-admin' : '/admin';
-              navigate("/verify-2fa", { state: { from: { pathname: target }, token: data.token || 'pending' } });
+              navigate("/verify-2fa", { state: { from: { pathname: target } } });
               return;
             }
           }
