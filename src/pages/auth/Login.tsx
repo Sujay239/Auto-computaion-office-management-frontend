@@ -57,7 +57,7 @@ const Login: React.FC = () => {
                   const target = role === 'super_admin' ? '/super-admin' : '/admin';
                   // If 2FA is enabled but session is not verified, go to verify page
                   if (twoFAData.twoFactorEnabled && !data.user.is2FAVerified) {
-                    navigate('/verify-2fa', { replace: true, state: { from: { pathname: target } } });
+                    navigate('/verify-2fa', { replace: true, state: { from: { pathname: target }, token: 'pending' } });
                     return;
                   }
                 }
@@ -142,7 +142,7 @@ const Login: React.FC = () => {
             const twoFAData = await twoFARes.json();
             if (twoFAData.twoFactorEnabled) {
               const target = data.role === 'super_admin' ? '/super-admin' : '/admin';
-              navigate("/verify-2fa", { state: { from: { pathname: target } } });
+              navigate("/verify-2fa", { state: { from: { pathname: target }, token: data.token || 'pending' } });
               return;
             }
           }

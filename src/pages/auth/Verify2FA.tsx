@@ -16,6 +16,14 @@ const Verify2FA: React.FC = () => {
     const location = useLocation();
     const { showSuccess, showError } = useNotification();
 
+    // Check for token presence
+    React.useEffect(() => {
+        if (!location.state?.token) {
+            showError("Access denied. Please login first.");
+            navigate('/login', { replace: true });
+        }
+    }, [location.state, navigate, showError]);
+
     const handleVerify = async () => {
         if (otp.length !== 6) {
             showError("Please enter a valid 6-digit code.");
@@ -32,6 +40,12 @@ const Verify2FA: React.FC = () => {
             });
 
             const data = await response.json();
+
+            if (response.status === 401 || response.status === 403) {
+                showError("Session expired. Please login again.");
+                navigate('/login', { replace: true });
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error(data.message || 'Verification failed');
