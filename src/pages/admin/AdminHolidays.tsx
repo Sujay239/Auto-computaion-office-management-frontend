@@ -14,6 +14,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Holiday {
     id: number;
@@ -143,6 +145,53 @@ const AdminHolidays: React.FC = () => {
         }
     };
 
+    const handleDownloadPDF = () => {
+        const doc = new jsPDF();
+
+        // Add Title
+        doc.setFontSize(18);
+        doc.text(`Office Holiday List - ${new Date().getFullYear()}`, 14, 22);
+
+        // Add Generation Date
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+        // Prepare Data
+        const tableColumn = ["Date", "Day", "Holiday Name", "Type"];
+        const tableRows = holidays.map(holiday => [
+            new Date(holiday.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }),
+            holiday.day,
+            holiday.name,
+            holiday.type.charAt(0).toUpperCase() + holiday.type.slice(1)
+        ]);
+
+        // Generate Table
+        autoTable(doc, {
+            startY: 35,
+            head: [tableColumn],
+            body: tableRows,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [37, 99, 235], // Blue-600
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            styles: {
+                fontSize: 10,
+                cellPadding: 5
+            },
+            columnStyles: {
+                0: { cellWidth: 40 }, // Date
+                1: { cellWidth: 30 }, // Day
+                2: { cellWidth: 'auto' }, // Name
+                3: { cellWidth: 40 } // Type
+            }
+        });
+
+        doc.save('HolidayList.pdf');
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-950">
@@ -169,14 +218,7 @@ const AdminHolidays: React.FC = () => {
                         <Button
                             variant="outline"
                             className="gap-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white cursor-pointer"
-                            onClick={() => {
-                                const link = document.createElement('a');
-                                link.href = '/uploads/HolidayList.pdf';
-                                link.download = 'HolidayList.pdf';
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                            }}
+                            onClick={handleDownloadPDF}
                         >
                             <Download className="h-4 w-4" />
                             Download List

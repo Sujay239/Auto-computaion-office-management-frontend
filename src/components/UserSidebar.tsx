@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
   CheckSquare,
@@ -73,6 +73,7 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
   const API_BASE_URL = import.meta.env.VITE_BASE_URL;
   const { user } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
   const [expanded, setExpanded] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -226,7 +227,7 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
                 <div className="relative transition-transform duration-300 group-hover:scale-110">
                   {item.icon}
                   {/* Collapsed Badge */}
-                  {!isExpandedVisual && item.label === "Chats" && unreadCount > 0 && (
+                  {!isExpandedVisual && item.label === "Chats" && unreadCount > 0 && !location.pathname.includes('/chats') && (
                     <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-950">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
@@ -240,7 +241,7 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
                 >
                   {item.label}
                   {/* Expanded Badge */}
-                  {item.label === "Chats" && unreadCount > 0 && (
+                  {item.label === "Chats" && unreadCount > 0 && !location.pathname.includes('/chats') && (
                     <span className="ml-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white shadow-sm">
                       {unreadCount}
                     </span>
