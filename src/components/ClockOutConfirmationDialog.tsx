@@ -1,4 +1,4 @@
-import React from "react";
+// import  from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +42,10 @@ const ClockOutConfirmationDialog: React.FC<ClockOutConfirmationDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-4">
-          <AlertDialogCancel onClick={onClose} className="cursor-pointer dark:text-white">
+          <AlertDialogCancel
+            onClick={onClose}
+            className="cursor-pointer text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700"
+          >
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction

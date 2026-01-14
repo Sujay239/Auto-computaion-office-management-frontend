@@ -135,12 +135,7 @@ const UserHome: React.FC = () => {
 
   const handleClockOut = async () => {
     if (isClockingIn) return;
-    setIsClockingIn(true);
-    try {
-      await checkOut();
-    } finally {
-      setIsClockingIn(false);
-    }
+    setShowClockOutModal(true);
   };
 
   // --- Derived Stats for Display ---
@@ -222,9 +217,8 @@ const UserHome: React.FC = () => {
               {isCheckedIn ? "Online" : "Offline"}
             </span>
             <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                isCheckedIn ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
-              }`}
+              className={`w-2.5 h-2.5 rounded-full ${isCheckedIn ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                }`}
             ></span>
           </div>
         </div>
@@ -425,11 +419,10 @@ const UserHome: React.FC = () => {
               <div className="relative z-10 flex flex-col items-center text-center p-8">
                 <Badge
                   variant="outline"
-                  className={`mb-2 px-3 py-1 text-xs font-medium backdrop-blur-sm border-slate-200 dark:border-white/10 ${
-                    isCheckedIn
+                  className={`mb-2 px-3 py-1 text-xs font-medium backdrop-blur-sm border-slate-200 dark:border-white/10 ${isCheckedIn
                       ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
                       : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-white"
-                  }`}
+                    }`}
                 >
                   {isCheckedIn ? "Currently Working" : "Ready to Start?"}
                 </Badge>
@@ -448,13 +441,12 @@ const UserHome: React.FC = () => {
                   onClick={isCheckedIn ? handleClockOut : handleClockIn}
                   className={`
                       w-full py-6 rounded-xl font-bold text-lg shadow-lg cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed
-                      ${
-                        isCheckedIn
-                          ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25"
-                          : hasCheckedOut
-                          ? "bg-slate-400 text-white cursor-not-allowed"
-                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25"
-                      }
+                      ${isCheckedIn
+                      ? "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25"
+                      : hasCheckedOut
+                        ? "bg-slate-400 text-white cursor-not-allowed"
+                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25"
+                    }
                     `}
                 >
                   <span className="flex items-center justify-center gap-2">
@@ -468,8 +460,8 @@ const UserHome: React.FC = () => {
                     {isCheckedIn
                       ? "Clock Out"
                       : hasCheckedOut
-                      ? "Done for Today"
-                      : "Clock In"}
+                        ? "Done for Today"
+                        : "Clock In"}
                     {isClockingIn && (
                       <span className="ml-2 w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></span>
                     )}
@@ -480,10 +472,10 @@ const UserHome: React.FC = () => {
                   <div className="mt-6 pt-6 border-t border-slate-100 dark:border-white/10 w-full flex justify-between text-xs text-slate-500 dark:text-slate-400">
                     <span>Started at</span>
                     <span className="text-slate-900 dark:text-white font-medium">
-                      {new Date(startTime).toLocaleTimeString("en-IN", {
+                      {new Date(new Date(startTime).getTime() + 5.5 * 60 * 60 * 1000).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
-                        timeZone: "Asia/Kolkata", // This forces UTC+5:30
+                        timeZone: "UTC",
                       })}
                     </span>
                   </div>

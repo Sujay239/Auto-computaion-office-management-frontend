@@ -133,16 +133,16 @@ const Attendance = () => {
   // --- HANDLERS ---
   const handleClockAction = async () => {
     if (isClockingIn || hasCheckedOut) return;
-    setIsClockingIn(true);
 
+    if (isCheckedIn) {
+      setShowClockOutModal(true);
+      return;
+    }
+
+    setIsClockingIn(true);
     try {
-      if (isCheckedIn) {
-        await checkOut();
-        await fetchAttendanceHistory();
-      } else {
-        await checkIn();
-        await fetchAttendanceHistory();
-      }
+      await checkIn();
+      await fetchAttendanceHistory();
     } finally {
       setIsClockingIn(false);
     }
@@ -238,11 +238,10 @@ const Attendance = () => {
               <div
                 className={`
                     w-40 h-40 rounded-full border-4 flex items-center justify-center mb-6 shadow-2xl transition-all duration-500 relative
-                    ${
-                      isCheckedIn
-                        ? "border-green-500 bg-green-500/10 shadow-green-500/20"
-                        : "border-slate-500 bg-white/5 shadow-black/40"
-                    }
+                    ${isCheckedIn
+                    ? "border-green-500 bg-green-500/10 shadow-green-500/20"
+                    : "border-slate-500 bg-white/5 shadow-black/40"
+                  }
                 `}
               >
                 <div className="text-center">
@@ -253,10 +252,10 @@ const Attendance = () => {
                     {isCheckedIn
                       ? elapsedTime
                       : currentTime.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                        })}
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
                   </span>
                 </div>
               </div>
@@ -268,20 +267,19 @@ const Attendance = () => {
                   onClick={handleClockAction}
                   className={`
                             w-full h-12 text-lg font-bold rounded-xl shadow-lg transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed
-                            ${
-                              isCheckedIn
-                                ? "bg-red-600 hover:bg-red-700 text-white shadow-red-900/20 border-none"
-                                : hasCheckedOut
-                                ? "bg-slate-500 text-white cursor-not-allowed border-none"
-                                : "bg-green-500 hover:bg-green-600 text-white shadow-green-900/20 border-none"
-                            }
+                            ${isCheckedIn
+                      ? "bg-red-600 hover:bg-red-700 text-white shadow-red-900/20 border-none"
+                      : hasCheckedOut
+                        ? "bg-slate-500 text-white cursor-not-allowed border-none"
+                        : "bg-green-500 hover:bg-green-600 text-white shadow-green-900/20 border-none"
+                    }
                         `}
                 >
                   {isCheckedIn
                     ? "Clock Out"
                     : hasCheckedOut
-                    ? "Done for Today"
-                    : "Clock In"}
+                      ? "Done for Today"
+                      : "Clock In"}
                   {isClockingIn && (
                     <span className="ml-2 w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin inline-block"></span>
                   )}
@@ -343,9 +341,9 @@ const Attendance = () => {
                       {record.date === new Date().toISOString().split("T")[0]
                         ? "Today"
                         : new Date(record.date).toLocaleDateString("en-US", {
-                            day: "numeric",
-                            month: "short",
-                          })}
+                          day: "numeric",
+                          month: "short",
+                        })}
                     </span>
                     <span className="font-mono text-slate-500">
                       {formatTime(record.checkIn)} -{" "}
