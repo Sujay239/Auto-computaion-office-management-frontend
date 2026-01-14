@@ -15,7 +15,8 @@ const SessionGuard: React.FC = () => {
 
         window.fetch = async (...args) => {
             try {
-                const response = await originalFetch.current(...args);
+                // Fix: explicit binding to window to prevent 'Illegal invocation'
+                const response = await originalFetch.current.apply(window, args as any);
 
                 // Check for session expiry
                 if (response.status === 401 || response.status === 403) {
