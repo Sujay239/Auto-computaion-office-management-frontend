@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 // import axios from "axios";
 import { useNotification } from "../../components/NotificationProvider";
+import * as XLSX from "xlsx";
 
 interface AttendanceRecord {
   id: number;
@@ -166,6 +167,33 @@ const AdminAttendance: React.FC = () => {
     return false;
   }).length;
 
+  const handleExport = () => {
+    if (filteredData.length === 0) {
+      showError("No data to export");
+      return;
+    }
+
+    const dataToExport = filteredData.map((row) => ({
+      "Employee Name": row.name,
+      "Designation": row.designation,
+      "Date": row.date,
+      "Check In": row.checkIn,
+      "Check Out": row.checkOut,
+      "Working Hours": row.hours,
+      "Status": row.status,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
+
+    // Adjust column width for better visibility
+    const max_width = dataToExport.reduce((w, r) => Math.max(w, r["Employee Name"].length), 10);
+    worksheet["!cols"] = [{ wch: max_width }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 10 }];
+
+    XLSX.writeFile(workbook, `attendance_report_${viewMode}_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 px-6 lg:p-10 animate-in fade-in duration-500">
       <div className="space-y-8">
@@ -210,6 +238,7 @@ const AdminAttendance: React.FC = () => {
 
             <Button
               variant="outline"
+              onClick={handleExport}
               className="dark:bg-slate-800 dark:text-white dark:border-slate-800 cursor-pointer"
             >
               <Download className="mr-2 h-4 w-4" /> Export Report

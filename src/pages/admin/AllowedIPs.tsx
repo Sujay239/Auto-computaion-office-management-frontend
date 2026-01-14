@@ -157,7 +157,7 @@ const AllowedIPs: React.FC = () => {
                         <DialogContent className="sm:max-w-md bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
                             <DialogHeader>
                                 <DialogTitle className="dark:text-white">Add New IP Address</DialogTitle>
-                                <DialogDescription>
+                                <DialogDescription className="text-slate-500 dark:text-white">
                                     Enter the IP address (IPv4 or IPv6) and a label to identify it.
                                 </DialogDescription>
                             </DialogHeader>
