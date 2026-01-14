@@ -121,47 +121,36 @@ const AdminAttendance: React.FC = () => {
     fetchAttendance();
   }, [viewMode, formattedDate, selectedMonth, selectedYear]);
 
-  // Calculate stats
+  // Filter Logic
+  const [filterStatus, setFilterStatus] = useState("All");
+
+  const filteredData = attendanceData.filter((record) => {
+    if (filterStatus === "All") return true;
+    return record.status === filterStatus;
+  });
+
+  // Calculate stats (Fix: use full data for stats, or filtered? Usually stats show overall, but list shows filtered. Let's keep stats on FULL data for context, or filter?
+  // User generally wants to see "How many present?" globally, then filter list to see WHO.
+  // Let's keep stats based on attendanceData (full).
   const presentCount = attendanceData.filter(
     (r) => r.status === "Present"
   ).length;
   const absentCount = attendanceData.filter(
     (r) => r.status === "Absent"
-  ).length; // Note: history view might not have 'Absent' rows
-  // const lateCount = attendanceData.filter(r => {
-  //     // Simple string check for now, backend could provide simpler flag
-  //     // Assuming backend sets status 'Late' or we check logic here.
-  //     // Backend currently sends 'Late' status if applicable in some logic, or 'Present'.
-  //     // Let's trust the status string from backend or the explicit checkIn time if needed.
-  //     // For this UI, let's rely on status 'Late' if backend sends it, OR checkIn time if we want to be strict.
-  //     return r.status === 'Late';
-  //     // Note: My backend adminAttendance code used simple status from DB.
-  //     // Employee attendance.ts calculated 'Late'.
-  //     // Let's assume the DB status is updated or we trust the DB 'status' column.
-  //     // If DB status is just 'Present', we might miss 'Late'.
-  //     // Quick fix: The backend SQL 'COALESCE(a.status, 'Absent')' uses DB status.
-  //     // We should depend on DB status.
-  // }).length;
-
-  // For "Late", if database only stores "Present", we might need to check time.
-  // But for now let's stick to status.
+  ).length;
   const onLeaveCount = attendanceData.filter(
     (r) =>
       r.status === "Half Day" || r.status === "On Leave" || r.status === "Leave"
   ).length;
 
-  // Logic to handle "Late" calculation if status is just "Present" but time is late?
-  // Let's refine the stats to be robust:
   const calculatedLate = attendanceData.filter((r) => {
     if (r.status === "Late") return true;
     if (r.status === "Present" && r.checkIn !== "-") {
-      // Example 9:15 threshold
       const [time, period] = r.checkIn.split(" ");
       const [h, m] = time.split(":").map(Number);
-      // 9:15 AM
       if (period === "AM" && h === 9 && m > 15) return true;
-      if (period === "AM" && h > 9 && h !== 12) return true; // 10 AM, 11 AM
-      if (period === "PM") return true; // Late
+      if (period === "AM" && h > 9 && h !== 12) return true;
+      if (period === "PM") return true;
       return false;
     }
     return false;
@@ -184,11 +173,10 @@ const AdminAttendance: React.FC = () => {
             <div className="flex items-center space-x-2 bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
               <Label
                 htmlFor="view-mode"
-                className={`text-sm cursor-pointer transition-all ${
-                  viewMode === "daily"
+                className={`text-sm cursor-pointer transition-all ${viewMode === "daily"
                     ? "font-bold text-slate-900 dark:text-white underline decoration-2 underline-offset-4"
                     : "text-slate-500 dark:text-slate-500"
-                }`}
+                  }`}
               >
                 Daily
               </Label>
@@ -201,11 +189,10 @@ const AdminAttendance: React.FC = () => {
               />
               <Label
                 htmlFor="view-mode"
-                className={`text-sm cursor-pointer transition-all ${
-                  viewMode === "history"
+                className={`text-sm cursor-pointer transition-all ${viewMode === "history"
                     ? "font-bold text-slate-900 dark:text-white underline decoration-2 underline-offset-4"
                     : "text-slate-500 dark:text-slate-500"
-                }`}
+                  }`}
               >
                 History
               </Label>
@@ -221,78 +208,104 @@ const AdminAttendance: React.FC = () => {
         </div>
 
         {/* --- Filters & Navigation --- */}
-        <div className="flex flex-row items-center justify-between bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm gap-4 transition-all">
-          {viewMode === "daily" ? (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handlePrevDay}
-                className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer dark:bg-slate-800 dark:text-white dark:border-slate-800"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
+        <div className="flex flex-col md:flex-row items-center justify-between bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm gap-4 transition-all">
 
+          {/* Left Side: Navigation / Month Select */}
+          <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+            {viewMode === "daily" ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handlePrevDay}
+                  className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer dark:bg-slate-800 dark:text-white dark:border-slate-800"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <CalendarCheck className="h-5 w-5 text-slate-500" />
+                  <span className="font-semibold text-slate-900 dark:text-white text-lg max-sm:text-[14px]">
+                    {isToday(selectedDate) ? "Today" : displayDate}
+                  </span>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNextDay}
+                  disabled={
+                    isToday(selectedDate) || isFuture(addDays(selectedDate, 1))
+                  }
+                  className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-30 dark:bg-slate-800 dark:text-white dark:border-slate-800"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
               <div className="flex items-center gap-2">
-                <CalendarCheck className="h-5 w-5 text-slate-500" />
-                <span className="font-semibold text-slate-900 dark:text-white text-lg max-sm:text-[14px]">
-                  {isToday(selectedDate) ? "Today" : displayDate}
+                <span className="text-sm font-medium text-slate-700 dark:text-white whitespace-nowrap">
+                  Period:
                 </span>
-              </div>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-[130px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 dark:text-white h-9">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      <SelectItem key={m} value={m.toString()}>
+                        {format(new Date(2000, m - 1, 1), "MMMM")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleNextDay}
-                disabled={
-                  isToday(selectedDate) || isFuture(addDays(selectedDate, 1))
-                }
-                className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-30 dark:bg-slate-800 dark:text-white dark:border-slate-800"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </>
-          ) : (
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-slate-500 dark:text-white" />
-                <span className="text-sm font-medium text-slate-700 dark:text-white">
-                  Filter By:
-                </span>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-[100px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 dark:text-white h-9">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                    {[2024, 2025, 2026, 2027].map((y) => (
+                      <SelectItem key={y} value={y.toString()}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            )}
+          </div>
 
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 dark:text-white">
-                  <SelectValue placeholder="Month" />
+          {/* Right Side: Status Filter */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full">
+              <Filter className="h-4 w-4 text-slate-500 dark:text-white shrink-0" />
+              <span className="text-sm font-medium text-slate-700 dark:text-white whitespace-nowrap">
+                Filter:
+              </span>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full md:w-[150px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 dark:text-white h-9">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                    <SelectItem key={m} value={m.toString()}>
-                      {format(new Date(2000, m - 1, 1), "MMMM")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[120px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 dark:text-white">
-                  <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
-                  {[2024, 2025, 2026, 2027].map((y) => (
-                    <SelectItem key={y} value={y.toString()}>
-                      {y}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="All">All Statuses</SelectItem>
+                  <SelectItem value="Present">Present</SelectItem>
+                  <SelectItem value="Absent">Absent</SelectItem>
+                  <SelectItem value="Late">Late</SelectItem>
+                  <SelectItem value="Half Day">Half Day</SelectItem>
+                  <SelectItem value="On Leave">On Leave</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          )}
+          </div>
         </div>
 
         {/* --- Stats Row --- */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-4 border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <Card
+            onClick={() => setFilterStatus("Present")}
+            className={`p-4 border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 cursor-pointer transition-colors ${filterStatus === 'Present' ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
+          >
             <div className="p-2 rounded-lg bg-green-100 text-green-600">
               {" "}
               <CheckCircle2 size={24} />{" "}
@@ -307,7 +320,10 @@ const AdminAttendance: React.FC = () => {
               </p>{" "}
             </div>
           </Card>
-          <Card className="p-4 border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <Card
+            onClick={() => setFilterStatus("Absent")}
+            className={`p-4 border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 cursor-pointer transition-colors ${filterStatus === 'Absent' ? 'ring-2 ring-red-500 bg-red-50 dark:bg-red-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
+          >
             <div className="p-2 rounded-lg bg-red-100 text-red-600">
               {" "}
               <XCircle size={24} />{" "}
@@ -324,7 +340,10 @@ const AdminAttendance: React.FC = () => {
               </p>{" "}
             </div>
           </Card>
-          <Card className="p-4 border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <Card
+            onClick={() => setFilterStatus("Late")}
+            className={`p-4 border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 cursor-pointer transition-colors ${filterStatus === 'Late' ? 'ring-2 ring-amber-500 bg-amber-50 dark:bg-amber-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
+          >
             <div className="p-2 rounded-lg bg-amber-100 text-amber-600">
               {" "}
               <Clock size={24} />{" "}
@@ -339,7 +358,10 @@ const AdminAttendance: React.FC = () => {
               </p>{" "}
             </div>
           </Card>
-          <Card className="p-4 border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <Card
+            onClick={() => setFilterStatus("On Leave")}
+            className={`p-4 border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 cursor-pointer transition-colors ${filterStatus === 'On Leave' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'}`}
+          >
             <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
               {" "}
               <CalendarCheck size={24} />{" "}
@@ -377,7 +399,7 @@ const AdminAttendance: React.FC = () => {
                   Enjoy your day off!
                 </p>
               </div>
-            ) : attendanceData.length > 0 ? (
+            ) : filteredData.length > 0 ? (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-slate-800 text-xs uppercase text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-900/20">
@@ -390,7 +412,7 @@ const AdminAttendance: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {attendanceData.map((record, index) => (
+                  {filteredData.map((record, index) => (
                     <tr
                       key={index}
                       className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -434,27 +456,23 @@ const AdminAttendance: React.FC = () => {
                         <Badge
                           variant="outline"
                           className={`
-                                            ${
-                                              record.status === "Present"
-                                                ? "bg-green-50 text-green-700 border-green-200"
-                                                : ""
-                                            }
-                                            ${
-                                              record.status === "Absent"
-                                                ? "bg-red-50 text-red-700 border-red-200"
-                                                : ""
-                                            }
-                                            ${
-                                              record.status === "Late"
-                                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                                : ""
-                                            }
-                                            ${
-                                              record.status === "Half Day" ||
-                                              record.status === "On Leave"
-                                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                                : ""
-                                            }
+                                            ${record.status === "Present"
+                              ? "bg-green-50 text-green-700 border-green-200"
+                              : ""
+                            }
+                                            ${record.status === "Absent"
+                              ? "bg-red-50 text-red-700 border-red-200"
+                              : ""
+                            }
+                                            ${record.status === "Late"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : ""
+                            }
+                                            ${record.status === "Half Day" ||
+                              record.status === "On Leave"
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : ""
+                            }
                                         `}
                         >
                           {record.status}
@@ -488,8 +506,8 @@ const AdminAttendance: React.FC = () => {
                 No Attendance Today
               </p>
             </div>
-          ) : attendanceData.length > 0 ? (
-            attendanceData.map((record, index) => (
+          ) : filteredData.length > 0 ? (
+            filteredData.map((record, index) => (
               <Card
                 key={index}
                 className="p-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm"
@@ -514,26 +532,22 @@ const AdminAttendance: React.FC = () => {
                   <Badge
                     variant="outline"
                     className={`
-                                        ${
-                                          record.status === "Present"
-                                            ? "bg-green-50 text-green-700 border-green-200"
-                                            : ""
-                                        }
-                                        ${
-                                          record.status === "Absent"
-                                            ? "bg-red-50 text-red-700 border-red-200"
-                                            : ""
-                                        }
-                                        ${
-                                          record.status === "Late"
-                                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                                            : ""
-                                        }
-                                        ${
-                                          record.status === "Half Day"
-                                            ? "bg-blue-50 text-blue-700 border-blue-200"
-                                            : ""
-                                        }
+                                        ${record.status === "Present"
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : ""
+                      }
+                                        ${record.status === "Absent"
+                        ? "bg-red-50 text-red-700 border-red-200"
+                        : ""
+                      }
+                                        ${record.status === "Late"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : ""
+                      }
+                                        ${record.status === "Half Day"
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : ""
+                      }
                                     `}
                   >
                     {record.status}

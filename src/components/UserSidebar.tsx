@@ -179,7 +179,13 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
               <NavLink
                 to={item.to}
                 end={item.to === "/user"}
-                onClick={() => setMobileOpen(false)}
+                onClick={(e) => {
+                  setMobileOpen(false);
+                  if (item.to === "/user/settings") {
+                    e.preventDefault();
+                    window.location.href = item.to;
+                  }
+                }}
                 className={({ isActive }) => `
                   group relative flex items-center p-3 rounded-xl transition-all duration-300 ease-in-out hover:scale-105 hover:ml-2 hover:font-bold
                   ${isActive
@@ -194,8 +200,8 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
                 </div>
                 <span
                   className={`overflow-hidden whitespace-nowrap transition-all duration-300 ${isExpandedVisual
-                      ? "w-40 ml-3 opacity-100"
-                      : "w-0 opacity-0 hidden"
+                    ? "w-40 ml-3 opacity-100"
+                    : "w-0 opacity-0 hidden"
                     }`}
                 >
                   {item.label}
@@ -238,8 +244,8 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
 
                 <span
                   className={`font-bold whitespace-nowrap ml-3 transition-all duration-300 relative z-10 ${isExpandedVisual
-                      ? "w-auto opacity-100 font-bold"
-                      : "w-0 opacity-0 hidden"
+                    ? "w-auto opacity-100 font-bold"
+                    : "w-0 opacity-0 hidden"
                     }`}
                 >
                   {isCheckedIn
@@ -276,8 +282,8 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
                 <LogOut size={20} />
                 <span
                   className={` whitespace-nowrap ml-3 transition-all duration-300 font-bold ${isExpandedVisual
-                      ? "w-auto opacity-100"
-                      : "w-0 opacity-0 hidden"
+                    ? "w-auto opacity-100"
+                    : "w-0 opacity-0 hidden"
                     }`}
                 >
                   Logout

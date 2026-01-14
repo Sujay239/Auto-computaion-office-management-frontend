@@ -87,6 +87,11 @@ const navItems: NavItem[] = [
     icon: <Clock size={20} />,
   },
   {
+    label : "Allowed Ips",
+    to : "/super-admin/allowed-ips",
+    icon : <Shield size={20} />,
+  },
+  {
     label: "Audit Logs",
     to: "/super-admin/audit-logs",
     icon: <Calendar size={20} />,
