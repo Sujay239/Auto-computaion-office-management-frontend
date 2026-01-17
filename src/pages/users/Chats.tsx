@@ -65,6 +65,7 @@ interface Employee {
   name: string;
   role: string;
   avatar?: string;
+   phone?: string;
 }
 
 interface ChatContact {
@@ -81,6 +82,7 @@ interface ChatContact {
   email?: string;
   role?: string;
   otherUserId?: string;
+   phone?: string;
 }
 
 // --- Constants ---
@@ -1937,7 +1939,7 @@ const Chats: React.FC = () => {
               </div>
               <p className="text-slate-500 dark:text-slate-400 text-sm">
                 {activeChat.type === "direct"
-                  ? "+1 234 567 890"
+                   ? activeChat.phone || "No phone provided"
                   : `${activeChat.members?.length || 0} members`}
               </p>
               {activeChat.type === "direct" && activeChat.email && (
