@@ -1937,11 +1937,16 @@ const Chats: React.FC = () => {
                   </span>
                 )}
               </div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">
-                {activeChat.type === "direct"
-                   ? activeChat.phone || "No phone provided"
-                  : `${activeChat.members?.length || 0} members`}
-              </p>
+             <p className="text-slate-500 dark:text-slate-400 text-sm">
+  {activeChat.type === "direct"
+    ? activeChat.phone ||
+      // Fallback: Find the user in the employees list to get the phone number
+      employees.find(
+        (e) => String(e.id) === String(activeChat.otherUserId)
+      )?.phone ||
+      "No phone provided"
+    : `${activeChat.members?.length || 0} members`}
+</p>
               {activeChat.type === "direct" && activeChat.email && (
                 <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                   {activeChat.email}
