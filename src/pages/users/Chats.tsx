@@ -208,6 +208,8 @@ const Chats: React.FC = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Modal State
   const [modalType, setModalType] = useState<
@@ -236,6 +238,7 @@ const Chats: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const socket = useRef<any>(null);
 
@@ -252,9 +255,8 @@ const Chats: React.FC = () => {
     currentUserRef.current = currentUser;
   }, [currentUser]);
 
-  useEffect(() => {
-    currentUserRef.current = currentUser;
-  }, [currentUser]);
+  const prevMessagesLength = useRef(0);
+  const prevActiveChatId = useRef<string | null>(null);
 
   // --- Header Visibility Logic ---
   const { setShowMobileHeader } =
@@ -277,8 +279,7 @@ const Chats: React.FC = () => {
     const fetchCurrentUser = async () => {
       try {
         const res = await fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:3000"
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"
           }/auth/myData`,
           {
             credentials: "include",
@@ -305,8 +306,7 @@ const Chats: React.FC = () => {
     const fetchContacts = async () => {
       try {
         const res = await fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:3000"
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"
           }/api/chats`,
           {
             credentials: "include",
@@ -337,8 +337,7 @@ const Chats: React.FC = () => {
     const fetchEmployees = async () => {
       try {
         const res = await fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:3000"
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"
           }/api/chats/users`,
           {
             credentials: "include",
@@ -499,7 +498,7 @@ const Chats: React.FC = () => {
           // Determine isMe based on currentUser - Check both camelCase and snake_case
           const isMe = currentUser
             ? String(message.senderId || (message as any).sender_id) ===
-              String(currentUser.id)
+            String(currentUser.id)
             : false;
 
           // Deduplication for Optimistic Updates:
@@ -507,10 +506,10 @@ const Chats: React.FC = () => {
           const optimisticMatchIndex =
             prev.length > 0
               ? prev
-                  .slice(-3)
-                  .findIndex(
-                    (m) => m.time === "Now" && m.text === message.text && m.isMe
-                  )
+                .slice(-3)
+                .findIndex(
+                  (m) => m.time === "Now" && m.text === message.text && m.isMe
+                )
               : -1;
 
           if (optimisticMatchIndex !== -1) {
@@ -566,9 +565,8 @@ const Chats: React.FC = () => {
       const fetchMessages = async () => {
         try {
           const res = await fetch(
-            `${
-              import.meta.env.VITE_API_URL || "http://localhost:3000"
-            }/api/chats/${activeChat.id}/messages`,
+            `${import.meta.env.VITE_API_URL || "http://localhost:3000"
+            }/api/chats/${activeChat.id}/messages?limit=25`,
             {
               credentials: "include",
             }
@@ -576,12 +574,21 @@ const Chats: React.FC = () => {
           if (res.ok) {
             const data = await res.json();
             setMessages(data);
+            setHasMore(data.length === 25);
+            // After initial fetch, scroll to bottom
+            setTimeout(() => {
+              if (chatContainerRef.current) {
+                chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+              }
+            }, 100);
           }
         } catch (error) {
           console.error("Failed to fetch messages", error);
         }
       };
       fetchMessages();
+      setHasMore(true);
+      setIsLoadingMore(false);
 
       // Join Room
       socket.current.emit("join_chat", activeChat.id);
@@ -595,8 +602,89 @@ const Chats: React.FC = () => {
   }, [activeChat]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!activeChat) return;
+
+    const isNewChat = prevActiveChatId.current !== activeChat.id;
+    const isNewMessage = messages.length > prevMessagesLength.current;
+    const scrollContainer = chatContainerRef.current;
+
+    if (scrollContainer) {
+      if (isNewChat) {
+        // Initial scroll to bottom
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      } else if (isNewMessage) {
+        // Only scroll if we were already near bottom OR if it's our own message
+        const isNearBottom =
+          scrollContainer.scrollHeight -
+          scrollContainer.scrollTop -
+          scrollContainer.clientHeight <
+          100;
+
+        const lastMessage = messages[messages.length - 1];
+        const isMyMessage = lastMessage?.isMe;
+
+        if (isNearBottom || isMyMessage) {
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      }
+    }
+
+    prevMessagesLength.current = messages.length;
+    prevActiveChatId.current = activeChat.id;
   }, [messages, activeChat]);
+
+  const loadMoreMessages = async () => {
+    if (!activeChat || !hasMore || isLoadingMore) return;
+
+    const oldestMessageId = messages[0]?.id;
+    if (!oldestMessageId) return;
+
+    setIsLoadingMore(true);
+    const container = chatContainerRef.current;
+    const oldScrollHeight = container?.scrollHeight || 0;
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"
+        }/api/chats/${activeChat.id}/messages?cursor=${oldestMessageId}&limit=25`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length > 0) {
+          setMessages((prev) => [...data, ...prev]);
+          setHasMore(data.length === 25);
+
+          // Preserve scroll position
+          requestAnimationFrame(() => {
+            if (container) {
+              const newScrollHeight = container.scrollHeight;
+              container.scrollTop = newScrollHeight - oldScrollHeight;
+            }
+          });
+        } else {
+          setHasMore(false);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load more messages", e);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollTop === 0 && hasMore && !isLoadingMore) {
+      loadMoreMessages();
+    }
+  };
 
   // --- Handlers ---
 
@@ -681,8 +769,7 @@ const Chats: React.FC = () => {
 
     try {
       const res = await fetch(
-        `${
-          import.meta.env.VITE_API_URL || "http://localhost:3000"
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"
         }/api/chats/create`,
         {
           method: "POST",
@@ -704,8 +791,7 @@ const Chats: React.FC = () => {
         setActiveChat(newChat);
         setModalType(null);
         showSuccess(
-          `${
-            type === "group" ? "Group" : "Space"
+          `${type === "group" ? "Group" : "Space"
           } "${modalInputValue}" created successfully!`
         );
       } else {
@@ -723,8 +809,7 @@ const Chats: React.FC = () => {
       if (activeChat.type !== "direct") {
         try {
           const res = await fetch(
-            `${
-              import.meta.env.VITE_API_URL || "http://localhost:3000"
+            `${import.meta.env.VITE_API_URL || "http://localhost:3000"
             }/api/chats/${activeChat.id}/leave`,
             {
               method: "POST",
@@ -775,8 +860,7 @@ const Chats: React.FC = () => {
     try {
       if (type === "remove") {
         const res = await fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:3000"
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"
           }/api/chats/${activeChat.id}/remove-member`,
           {
             method: "POST",
@@ -796,8 +880,7 @@ const Chats: React.FC = () => {
         showSuccess("Member removed successfully!");
       } else if (type === "admin") {
         const res = await fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:3000"
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"
           }/api/chats/${activeChat.id}/make-admin`,
           {
             method: "POST",
@@ -853,8 +936,7 @@ const Chats: React.FC = () => {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/chats/${
-          activeChat.id
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/chats/${activeChat.id
         }/add-members`,
         {
           method: "POST",
@@ -908,9 +990,8 @@ const Chats: React.FC = () => {
         socket.current.emit("send_message", {
           chatId: activeChat.id,
           senderId: "me",
-          text: `[${isImage ? "Image" : "File"} Upload Placeholder: ${
-            file.name
-          }]`,
+          text: `[${isImage ? "Image" : "File"} Upload Placeholder: ${file.name
+            }]`,
         });
       }
     }
@@ -960,8 +1041,7 @@ const Chats: React.FC = () => {
     if (String(contact.id).startsWith("temp_") && contact.otherUserId) {
       try {
         const res = await fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:3000"
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"
           }/api/chats/dm`,
           {
             method: "POST",
@@ -995,8 +1075,7 @@ const Chats: React.FC = () => {
 
       try {
         await fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:3000"
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"
           }/api/chats/mark-read`,
           {
             method: "POST",
@@ -1017,10 +1096,9 @@ const Chats: React.FC = () => {
       onClick={() => handleContactClick(contact)}
       className={`
         flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200
-        ${
-          activeChat?.id === contact.id
-            ? "bg-slate-100 dark:bg-slate-800 border-l-4 border-l-slate-900 dark:border-l-green-500"
-            : "hover:bg-slate-50 dark:hover:bg-slate-800/50 border-l-4 border-l-transparent"
+        ${activeChat?.id === contact.id
+          ? "bg-slate-100 dark:bg-slate-800 border-l-4 border-l-slate-900 dark:border-l-green-500"
+          : "hover:bg-slate-50 dark:hover:bg-slate-800/50 border-l-4 border-l-transparent"
         }
       `}
     >
@@ -1028,13 +1106,12 @@ const Chats: React.FC = () => {
         <Avatar className="h-10 w-10 border border-slate-200 dark:border-slate-700">
           <AvatarImage src={contact.avatar} />
           <AvatarFallback
-            className={`text-xs font-bold ${
-              contact.type === "space"
-                ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
-                : contact.type === "group"
+            className={`text-xs font-bold ${contact.type === "space"
+              ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+              : contact.type === "group"
                 ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
                 : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-            }`}
+              }`}
           >
             {contact.type === "space" ? (
               <Hash size={16} />
@@ -1161,19 +1238,19 @@ const Chats: React.FC = () => {
                 )}
                 {(filteredContacts.some((c) => c.type === "group") ||
                   filteredContacts.some((c) => c.type === "space")) && (
-                  <div className="mt-4">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
-                      Spaces & Groups
-                    </h3>
-                    <div className="space-y-1">
-                      {filteredContacts
-                        .filter((c) => c.type !== "direct")
-                        .map((contact) => (
-                          <ChatListItem key={contact.id} contact={contact} />
-                        ))}
+                    <div className="mt-4">
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
+                        Spaces & Groups
+                      </h3>
+                      <div className="space-y-1">
+                        {filteredContacts
+                          .filter((c) => c.type !== "direct")
+                          .map((contact) => (
+                            <ChatListItem key={contact.id} contact={contact} />
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </>
             )}
           </div>
@@ -1241,19 +1318,18 @@ const Chats: React.FC = () => {
                     {activeChat.type === "direct" ? (
                       <p className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
                         <span
-                          className={`w-1.5 h-1.5 rounded-full inline-block ${
-                            activeChat.otherUserId &&
+                          className={`w-1.5 h-1.5 rounded-full inline-block ${activeChat.otherUserId &&
                             onlineUsers.has(String(activeChat.otherUserId))
-                              ? "bg-green-500"
-                              : "bg-slate-400"
-                          }`}
+                            ? "bg-green-500"
+                            : "bg-slate-400"
+                            }`}
                         />{" "}
                         {typingUser
                           ? "Typing..."
                           : activeChat.otherUserId &&
                             onlineUsers.has(String(activeChat.otherUserId))
-                          ? "Online"
-                          : "Offline"}
+                            ? "Online"
+                            : "Offline"}
                       </p>
                     ) : (
                       <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1313,7 +1389,16 @@ const Chats: React.FC = () => {
               </div>
 
               {/* Messages List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-black/20">
+              <div
+                ref={chatContainerRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-black/20"
+              >
+                {isLoadingMore && (
+                  <div className="flex justify-center py-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-900 dark:border-green-600"></div>
+                  </div>
+                )}
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400">
                     <MessageSquare size={32} className="mb-2 opacity-50" />
@@ -1333,14 +1418,12 @@ const Chats: React.FC = () => {
                     ) : (
                       <div
                         key={msg.id}
-                        className={`flex ${
-                          msg.isMe ? "justify-end" : "justify-start"
-                        }`}
+                        className={`flex ${msg.isMe ? "justify-end" : "justify-start"
+                          }`}
                       >
                         <div
-                          className={`flex max-w-[85%] md:max-w-[70%] ${
-                            msg.isMe ? "flex-row-reverse" : "flex-row"
-                          } items-end gap-2`}
+                          className={`flex max-w-[85%] md:max-w-[70%] ${msg.isMe ? "flex-row-reverse" : "flex-row"
+                            } items-end gap-2`}
                         >
                           {!msg.isMe && (
                             <Avatar className="h-8 w-8 mb-1 mr-1 hidden sm:block">
@@ -1355,17 +1438,16 @@ const Chats: React.FC = () => {
                                 {activeChat.type === "direct"
                                   ? activeChat.name.substring(0, 1)
                                   : msg.senderName
-                                  ? msg.senderName.substring(0, 1)
-                                  : "?"}
+                                    ? msg.senderName.substring(0, 1)
+                                    : "?"}
                               </AvatarFallback>
                             </Avatar>
                           )}
 
                           {/* Message Bubble Wrapper - Modified to show Name */}
                           <div
-                            className={`flex flex-col ${
-                              msg.isMe ? "items-end" : "items-start"
-                            } max-w-full min-w-0`}
+                            className={`flex flex-col ${msg.isMe ? "items-end" : "items-start"
+                              } max-w-full min-w-0`}
                           >
                             {activeChat.type !== "direct" && !msg.isMe && (
                               <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-2 mb-0.5 font-medium leading-none">
@@ -1373,11 +1455,10 @@ const Chats: React.FC = () => {
                               </span>
                             )}
                             <div
-                              className={`p-1.5 px-2 rounded-2xl text-[11px] shadow-sm ${
-                                msg.isMe
-                                  ? "bg-slate-900 text-white dark:bg-green-600 rounded-br-none"
-                                  : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-100 dark:border-slate-700"
-                              }`}
+                              className={`p-1.5 px-2 rounded-2xl text-[11px] shadow-sm ${msg.isMe
+                                ? "bg-slate-900 text-white dark:bg-green-600 rounded-br-none"
+                                : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-100 dark:border-slate-700"
+                                }`}
                             >
                               {msg.attachment ? (
                                 msg.attachment.type === "image" ? (
@@ -1431,11 +1512,10 @@ const Chats: React.FC = () => {
                               })()}
                               <div className="flex items-center justify-end gap-1 mt-0.5">
                                 <p
-                                  className={`text-[7px] text-right opacity-70 leading-none ${
-                                    msg.isMe
-                                      ? "text-slate-300"
-                                      : "text-slate-400"
-                                  }`}
+                                  className={`text-[7px] text-right opacity-70 leading-none ${msg.isMe
+                                    ? "text-slate-300"
+                                    : "text-slate-400"
+                                    }`}
                                 >
                                   {formatTime(msg.time)}
                                 </p>
@@ -1528,11 +1608,10 @@ const Chats: React.FC = () => {
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                       variant="ghost"
                       size="icon"
-                      className={`h-9 w-9 cursor-pointer ${
-                        showEmojiPicker
-                          ? "text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800"
-                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                      }`}
+                      className={`h-9 w-9 cursor-pointer ${showEmojiPicker
+                        ? "text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800"
+                        : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        }`}
                     >
                       <Smile size={18} />
                     </Button>
@@ -1661,20 +1740,18 @@ const Chats: React.FC = () => {
                       return (
                         <div
                           key={emp.id}
-                          className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                            isSelected
-                              ? "bg-slate-100 dark:bg-slate-800"
-                              : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                          }`}
+                          className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${isSelected
+                            ? "bg-slate-100 dark:bg-slate-800"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
                           onClick={() => toggleMemberSelection(emp.id)}
                         >
                           {/* Custom Checkbox */}
                           <div
-                            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                              isSelected
-                                ? "bg-slate-900 border-slate-900 dark:bg-green-600 dark:border-green-600"
-                                : "border-slate-300 dark:border-slate-600"
-                            }`}
+                            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected
+                              ? "bg-slate-900 border-slate-900 dark:bg-green-600 dark:border-green-600"
+                              : "border-slate-300 dark:border-slate-600"
+                              }`}
                           >
                             {isSelected && (
                               <Check size={14} className="text-white" />
@@ -1800,11 +1877,10 @@ const Chats: React.FC = () => {
               </Button>
               <Button
                 onClick={executeConfirmation}
-                className={`flex-1 text-white cursor-pointer ${
-                  pendingAction.type === "remove"
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-indigo-600 hover:bg-indigo-700"
-                }`}
+                className={`flex-1 text-white cursor-pointer ${pendingAction.type === "remove"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-indigo-600 hover:bg-indigo-700"
+                  }`}
               >
                 Confirm
               </Button>
@@ -1850,11 +1926,10 @@ const Chats: React.FC = () => {
                 </h2>
                 {activeChat.type !== "direct" && (
                   <span
-                    className={`text-xs font-bold uppercase tracking-wider ${
-                      activeChat.type === "space"
-                        ? "text-indigo-600 dark:text-indigo-400"
-                        : "text-orange-600 dark:text-orange-400"
-                    }`}
+                    className={`text-xs font-bold uppercase tracking-wider ${activeChat.type === "space"
+                      ? "text-indigo-600 dark:text-indigo-400"
+                      : "text-orange-600 dark:text-orange-400"
+                      }`}
                   >
                     {activeChat.type}
                   </span>
@@ -2109,19 +2184,17 @@ const Chats: React.FC = () => {
                       return (
                         <div
                           key={emp.id}
-                          className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                            isSelected
-                              ? "bg-slate-100 dark:bg-slate-800"
-                              : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                          }`}
+                          className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${isSelected
+                            ? "bg-slate-100 dark:bg-slate-800"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
                           onClick={() => toggleMemberSelection(emp.id)}
                         >
                           <div
-                            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                              isSelected
-                                ? "bg-slate-900 border-slate-900 dark:bg-green-600 dark:border-green-600"
-                                : "border-slate-300 dark:border-slate-600"
-                            }`}
+                            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected
+                              ? "bg-slate-900 border-slate-900 dark:bg-green-600 dark:border-green-600"
+                              : "border-slate-300 dark:border-slate-600"
+                              }`}
                           >
                             {isSelected && (
                               <Check size={14} className="text-white" />
@@ -2146,10 +2219,10 @@ const Chats: React.FC = () => {
                   {employees.filter(
                     (emp) => !activeChat.members?.includes(emp.id)
                   ).length === 0 && (
-                    <p className="text-center text-sm text-slate-400 py-8">
-                      All available contacts are already in this chat.
-                    </p>
-                  )}
+                      <p className="text-center text-sm text-slate-400 py-8">
+                        All available contacts are already in this chat.
+                      </p>
+                    )}
                 </ScrollArea>
                 <p className="text-xs text-slate-400 mt-2 text-right">
                   {selectedMembers.length} selected
